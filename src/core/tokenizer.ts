@@ -181,7 +181,7 @@ class Tokenizer {
 function expand(
   lex: Tokenizer,
   args: null | ((arg: string) => string | undefined)
-): Readonly<Token[]> {
+): readonly Token[] {
   const result: Token[] = [];
   let token = lex.next();
   if (token) {
@@ -300,7 +300,7 @@ export function tokenize(
   return result;
 }
 
-export function joinLatex(segments: Readonly<string[]>): string {
+export function joinLatex(segments: readonly string[]): string {
   let sep = '';
   const result: string[] = [];
   for (const segment of segments) {
@@ -330,7 +330,7 @@ export function joinLatex(segments: Readonly<string[]>): string {
  */
 export function latexCommand(
   command: string,
-  ...args: Readonly<string[]>
+  ...args: readonly string[]
 ): string {
   console.assert(command.startsWith('\\'));
 
@@ -339,8 +339,6 @@ export function latexCommand(
   // While TeX (Knuth) tends to minimize the use of braces, e.g. prefering
   // `\frac xy` over `\frac{x}{y}` we are implementing the more conservative
   // LaTeX convention that use braces by default.
-  // Note that the custom serializer for `\frac` does omit braces when
-  // both arguments are digits, i.e. `\frac34`.
   // See a discussion on this topic here: https://tex.stackexchange.com/questions/82329/how-bad-for-tex-is-omitting-braces-even-if-the-result-is-the-same
 
   return joinLatex([command, ...args.map((x) => `{${x}}`)]);

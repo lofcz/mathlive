@@ -43,7 +43,12 @@
   </header>
   <main>
 
-    <math-field id="mf" contenteditable="true" tabindex="0">\vec{x}\hat{y}</math-field>
+    <math-field id="mf" contenteditable="true" tabindex="0">\displaylines{\\ }
+    </math-field>
+
+    <!-- <math-field id="mf" contenteditable="true" tabindex="0">3+\enclose{updiagonalstrike
+      downdiagonalstrike}[padding="20px", 6px solid
+      rgba(205, 0, 11, .4)]{18}+5</math-field> -->
 
     <!-- <math-field id="mf">\begin{align}\sqrt{a} +
       1 & b + 234 \\ \sqrt{c} + 1234 & d + 12345\end{align}
@@ -88,6 +93,9 @@
     <h2 style="margin-top: 1em">LaTeX</h2>
     <div class="output" id="latex"></div>
 
+    <h2 style="margin-top: 1em">Typst</h2>
+    <div class="output" id="typst"></div>
+
     <h2>MathJSON</h2>
     <div class="output" style="white-space: nowrap">
       <div id="math-json"></div>
@@ -109,6 +117,8 @@
       <button id="shrink">Shrink</button>
     </div>
     <div style="height: 800px"></div>
+
+    $$\foo$$
   </main>
 
 
@@ -117,14 +127,18 @@
       renderMathInDocument,
       renderMathInElement,
       MathfieldElement,
-      convertLatexToMarkup
+      convertLatexToMarkup, setKeyboardLayoutLocale
     } from "/dist/mathlive.mjs";
     // } from "https://unpkg.com/mathlive?module";
     // } from "https://esm.run/mathlive";
+    //    import {
+    //      ComputeEngine,
+    //      version,
+    //    } from "https://esm.run/@cortex-js/compute-engine";
     import {
       ComputeEngine,
       version,
-    } from "https://esm.run/@cortex-js/compute-engine";
+    } from "https://cdn.jsdelivr.net/npm/@cortex-js/compute-engine@0.30.2/dist/compute-engine.min.esm.js";
 
     // MathfieldElement.fontsDirectory = "https://unpkg.com/mathlive/dist/fonts";
 
@@ -134,6 +148,9 @@
     renderMathInDocument({
       renderAccessibleContent: false,
       asciiMath: null,
+      macros: {
+        "foo": "\\mathtt{FOO}"
+      },
     });
 
 
@@ -200,6 +217,7 @@
 
 
     function setupMathfield(mf) {
+      mf.mathVirtualKeyboardPolicy = 'manual';
 
       MathfieldElement.fractionNavigationOrder = 'denominator-numerator'
 
@@ -267,7 +285,16 @@
       };
 
 
-      // setupMathfield(mf);
+      setupMathfield(mf);
+      mf.onInlineShortcut = (mf, shortcut) => {
+        if (shortcut === 'tonh')
+          return ('\\operatorname{tonh}(#@)');
+        if (shortcut === 'ton')
+          return ('\\operatorname{ton}(#@)');
+
+        return "";
+      };
+
       // First time update
       updateContent(mf);
       mf.addEventListener("input", (ev) => {
@@ -334,6 +361,7 @@
       const latex = mf.getValue("latex-expanded");
       try {
         setHtml("latex", mf.getValue("latex-expanded"));
+        setHtml("typst", mf.getValue("typst"));
         setHtml("ascii-math", mf.getValue("ascii-math"));
         setHtml("mathml", mf.getValue("math-ml"));
         document.getElementById("mathml-render").innerHTML =

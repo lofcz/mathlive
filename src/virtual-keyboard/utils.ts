@@ -66,6 +66,48 @@ function latexToMarkup(latex: string): string {
   return makeStruts(box, { classes: 'ML__latex' }).toMarkup();
 }
 
+function escapeAttribute(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/"/g, '&quot;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
+function stripTags(value: string): string {
+  return value.replace(/<\/?[^>]+(>|$)/g, ' ');
+}
+
+function getKeycapAriaLabel(
+  keycap: Partial<VirtualKeyboardKeycap>
+): string | null {
+  const candidate =
+    keycap.tooltip ??
+    (typeof keycap.label === 'string' ? stripTags(keycap.label) : undefined) ??
+    keycap.insert ??
+    keycap.latex ??
+    keycap.key;
+  if (!candidate) return null;
+  const label = candidate.replace(/\s+/g, ' ').trim();
+  return label || null;
+}
+
+function serializeKeycapCommand(
+  command: undefined | VirtualKeyboardKeycap['command']
+): string | null {
+  if (typeof command === 'undefined' || command === null) return null;
+  try {
+    return JSON.stringify(command);
+  } catch {
+    return null;
+  }
+}
+
+function getKeycapValue(keycap: Partial<VirtualKeyboardKeycap>): string | null {
+  const value = keycap.insert ?? keycap.latex ?? keycap.key;
+  return value ?? null;
+}
+
 function normalizeLayer(
   layer: string | VirtualKeyboardLayer | (string | VirtualKeyboardLayer)[]
 ): NormalizedVirtualKeyboardLayer[] {
@@ -413,7 +455,10 @@ function makeSyntheticKeycap(element: HTMLElement): void {
     if (element.hasAttribute('data-command')) {
       try {
         keycap.command = JSON.parse(element.dataset.command!);
-      } catch (e) {}
+      } catch (e) {
+        // Invalid JSON in data-command attribute, ignore it
+        console.warn('Invalid JSON in data-command attribute', e);
+      }
     }
 
     element.id = keyboard.registerKeycap(keycap);
@@ -627,7 +672,25 @@ function makeLayer(
             layerMarkup += `<div tabindex="-1" id="${keycapId}" class="${cls}"`;
 
           if (keycap.tooltip)
-            layerMarkup += ` data-tooltip="${keycap.tooltip}"`;
+            layerMarkup += ` data-tooltip="${escapeAttribute(keycap.tooltip)}"`;
+
+          const ariaLabel = getKeycapAriaLabel(keycap);
+          if (ariaLabel)
+            layerMarkup += ` aria-label="${escapeAttribute(ariaLabel)}"`;
+
+          const serializedCommand = serializeKeycapCommand(keycap.command);
+          if (serializedCommand) {
+            layerMarkup += ` data-command="${escapeAttribute(
+              serializedCommand
+            )}"`;
+          }
+
+          const keycapValue = getKeycapValue(keycap);
+          if (keycapValue) {
+            layerMarkup += ` data-keycap-value="${escapeAttribute(
+              keycapValue
+            )}"`;
+          }
 
           layerMarkup += `>${markup}</div>`;
         }
@@ -663,8 +726,7 @@ export function renderKeycap(
     else if (typeof keycap.shift === 'object') {
       markup = keycap.shift.label
         ? keycap.shift.label
-        : // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
-          ((latexToMarkup(keycap.shift.latex || keycap.shift.insert || '') ||
+        : ((latexToMarkup(keycap.shift.latex || keycap.shift.insert || '') ||
             keycap.shift.key) ??
           '');
     }
@@ -676,8 +738,7 @@ export function renderKeycap(
     //
     markup = keycap.label
       ? keycap.label
-      : // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
-        ((latexToMarkup(keycap.latex || keycap.insert || '') || keycap.key) ??
+      : ((latexToMarkup(keycap.latex || keycap.insert || '') || keycap.key) ??
         '');
 
     if (keycap.shift) {
@@ -688,7 +749,6 @@ export function renderKeycap(
       else if (keycap.shift.label) shiftLabel = keycap.shift.label;
       else {
         shiftLabel =
-          // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
           (latexToMarkup(keycap.shift.latex || keycap.shift.insert || '') ||
             keycap.shift.key) ??
           '';
@@ -1105,6 +1165,22 @@ function handlePointerDown(ev: PointerEvent) {
 
   console.assert(ev.type === 'pointerdown');
 
+  // CRITICAL: Ensure connection is established before sending command
+  // This handles the case where connection was lost between keypresses
+  // Check if we have a connected window, and if not, try to reconnect
+  const vk = keyboard as any;
+  if (!vk.connectedMathfieldWindow) {
+    // Try to find the most recently focused mathfield window
+    // In iframe scenarios, this should be the iframe's contentWindow
+    const focusedMf = (window as any).focusedMathfield?.();
+    if (focusedMf) {
+      // If the mathfield is in an iframe, we need to connect to that iframe's window
+      const mfWindow = focusedMf.element?.ownerDocument?.defaultView;
+      if (mfWindow && mfWindow !== window)
+        vk.connectedMathfieldWindow = mfWindow;
+    }
+  }
+
   const controller = new AbortController();
   const signal = controller.signal;
 
@@ -1275,7 +1351,9 @@ export function executeKeycapCommand(
       { focus: true, feedback: true, simulateKeystroke: true },
     ];
   }
-  VirtualKeyboard.singleton?.executeCommand(command);
+
+  if (VirtualKeyboard.singleton)
+    VirtualKeyboard.singleton.executeCommand(command);
 }
 
 function isKeycapElement(el: Element): el is HTMLElement {

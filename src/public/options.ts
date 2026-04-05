@@ -259,7 +259,7 @@ export type ContentChangeOptions = {
 
 /** @internal */
 export type KeyboardOptions = {
-  keybindings: Readonly<Keybinding[]>;
+  keybindings: readonly Keybinding[];
 };
 
 /** @internal */
@@ -311,7 +311,6 @@ export type EditingOptions = {
   mathVirtualKeyboardPolicy: 'auto' | 'manual' | 'sandboxed';
 };
 
-/** @internal */
 export type LayoutOptions = {
   defaultMode: 'inline-math' | 'math' | 'text';
 
@@ -340,16 +339,6 @@ export type MathfieldOptions = LayoutOptions &
   InlineShortcutsOptions &
   KeyboardOptions &
   MathfieldHooks & {
-    /**
-     * Specify the `targetOrigin` parameter for
-     * [postMessage](https://developer.mozilla.org/en/docs/Web/API/Window/postMessage)
-     * to send control messages from child to parent frame to remote control
-     * of mathfield component.
-     *
-     * **Default**: `window.origin`
-     */
-    virtualKeyboardTargetOrigin: string;
-
     /**
      * Specify how origin of message from [postMessage](https://developer.mozilla.org/en/docs/Web/API/Window/postMessage)
      * should be validated.
@@ -480,8 +469,8 @@ export type StaticRenderOptions = Partial<LayoutOptions> & {
 
   asciiMath?: {
     delimiters?: {
-      display?: string[]; // [openDelim: string, closeDelim: string][];
-      inline?: string[]; // [openDelim: string, closeDelim: string][];
+      display?: [openDelim: string, closeDelim: string][];
+      inline?: [openDelim: string, closeDelim: string][];
     };
   };
 
@@ -499,7 +488,7 @@ export type StaticRenderOptions = Partial<LayoutOptions> & {
      * Delimiter pairs that will trigger a render of the content in
      * display style or inline, respectively.
      *
-     * **Default**: `{display: [ ['$$', '$$'], ['\\[', '\\]'] ] ], inline: [ ['\\(','\\)'] ] ]}`
+     * **Default**: `{display: [ ['$$', '$$'], ['\\[', '\\]'] ], inline: [ ['\\(','\\)'] ]}`
      *
      */
     delimiters?: {

@@ -31,7 +31,7 @@ function getSelectionPlainString(mf: _Mathfield): string {
   return result;
 }
 
-function getSelectionAtoms(mf: _Mathfield): Readonly<Atom[]> {
+function getSelectionAtoms(mf: _Mathfield): readonly Atom[] {
   const model = mf.model;
   const ranges = model.selection.ranges;
   if (ranges.length !== 1) return [];
@@ -222,7 +222,7 @@ function getDecorationSubmenu(mf: _Mathfield): MenuItem[] {
   ];
 }
 
-function getBackgroundColorSubmenu(mf: _Mathfield): Readonly<MenuItem[]> {
+function getBackgroundColorSubmenu(mf: _Mathfield): readonly MenuItem[] {
   const result: MenuItem[] = [];
   for (const color of Object.keys(BACKGROUND_COLORS)) {
     result.push({
@@ -248,7 +248,7 @@ function getBackgroundColorSubmenu(mf: _Mathfield): Readonly<MenuItem[]> {
   return result;
 }
 
-function getColorSubmenu(mf: _Mathfield): Readonly<MenuItem[]> {
+function getColorSubmenu(mf: _Mathfield): readonly MenuItem[] {
   const result: MenuItem[] = [];
   for (const color of Object.keys(FOREGROUND_COLORS)) {
     result.push({
@@ -284,9 +284,8 @@ class InsertMatrixMenuItem extends _MenuItemState<{
   }
 
   set active(value: boolean) {
-    const cells = this.parentMenu.children as unknown as Readonly<
-      InsertMatrixMenuItem[]
-    >;
+    const cells = this.parentMenu
+      .children as unknown as readonly InsertMatrixMenuItem[];
     if (value) {
       // Make all the items with a smaller column or row active as well
       for (const cell of cells) {
@@ -689,6 +688,11 @@ export function getDefaultMenuItems(mf: _Mathfield): MenuItem[] {
           keyboardShortcut: 'meta+C',
         },
         {
+          label: () => localize('menu.copy-as-typst')!,
+          id: 'copy-latex',
+          onMenuSelect: () => ModeEditor.copyToClipboard(mf, 'typst'),
+        },
+        {
           label: () => localize('menu.copy-as-ascii-math')!,
           id: 'copy-ascii-math',
           onMenuSelect: () => ModeEditor.copyToClipboard(mf, 'ascii-math'),
@@ -726,6 +730,9 @@ function inMatrix(mf: _Mathfield): boolean {
     'bmatrix',
     'vmatrix',
     'Bmatrix',
+    'cases',
+    'dcases',
+    'rcases',
   ].includes(env);
 }
 
@@ -836,8 +843,7 @@ function variantStyleMenuItem(
 
     tooltip: () => localize(tooltip) ?? tooltip,
 
-    visible:
-      variantStyle === 'bold' ? true : () => validVariantStyleSelection(mf),
+    visible: true,
 
     checked: () =>
       ({ some: 'mixed', all: true })[mf.queryStyle({ variantStyle })] ?? false,

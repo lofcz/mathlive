@@ -29,14 +29,10 @@ function superscriptDepth(model: _Model): number {
   let atom: Atom | undefined = model.at(model.position);
   let wasSuperscript = false;
   while (atom) {
-    if (
-      !atom.hasEmptyBranch('superscript') ||
-      !atom.hasEmptyBranch('subscript')
-    )
+    if (!atom.hasEmptyBranch('superscript')) {
       result += 1;
-
-    if (!atom.hasEmptyBranch('superscript')) wasSuperscript = true;
-    else if (!atom.hasEmptyBranch('subscript')) wasSuperscript = false;
+      wasSuperscript = true;
+    } else if (!atom.hasEmptyBranch('subscript')) wasSuperscript = false;
 
     atom = atom.parent;
   }
@@ -49,14 +45,10 @@ function subscriptDepth(model: _Model): number {
   let atom: Atom | undefined = model.at(model.position);
   let wasSubscript = false;
   while (atom) {
-    if (
-      !atom.hasEmptyBranch('superscript') ||
-      !atom.hasEmptyBranch('subscript')
-    )
+    if (!atom.hasEmptyBranch('subscript')) {
       result += 1;
-
-    if (!atom.hasEmptyBranch('superscript')) wasSubscript = false;
-    else if (!atom.hasEmptyBranch('subscript')) wasSubscript = true;
+      wasSubscript = true;
+    } else if (!atom.hasEmptyBranch('superscript')) wasSubscript = false;
 
     atom = atom.parent;
   }
@@ -80,14 +72,13 @@ function moveToSuperscript(model: _Model): boolean {
   if (target.subsupPlacement === undefined) {
     // This atom can't have a superscript/subscript:
     // add an adjacent `subsup` atom instead.
-    if (target.rightSibling?.type !== 'subsup') {
-      target.parent!.addChildAfter(
-        new SubsupAtom({ style: target.style }),
-        target
-      );
+    let subsup = target.rightSibling;
+    if (subsup?.type !== 'subsup') {
+      subsup = new SubsupAtom({ style: target.style });
+      target.parent!.addChildAfter(subsup, target);
     }
 
-    target = target.rightSibling;
+    target = subsup!;
   }
 
   // Ensure there is a superscript branch
@@ -115,14 +106,13 @@ function moveToSubscript(model: _Model): boolean {
   if (target.subsupPlacement === undefined) {
     // This atom can't have a superscript/subscript:
     // add an adjacent `subsup` atom instead.
-    if (model.at(model.position + 1)?.type !== 'subsup') {
-      target.parent!.addChildAfter(
-        new SubsupAtom({ style: model.at(model.position).style }),
-        target
-      );
+    let subsup = target.rightSibling;
+    if (subsup?.type !== 'subsup') {
+      subsup = new SubsupAtom({ style: target.style });
+      target.parent!.addChildAfter(subsup, target);
     }
 
-    target = model.at(model.position + 1);
+    target = subsup!;
   }
 
   // Ensure there is a subscript branch
@@ -280,7 +270,7 @@ function getTabbableElements(): HTMLElement[] {
 // Select all the children of an atom, or a branch
 function select(
   model: _Model,
-  target: Atom | Readonly<Atom[]>,
+  target: Atom | readonly Atom[],
   direction: 'backward' | 'forward' = 'forward'
 ): boolean {
   const previousPosition = model.position;
@@ -524,14 +514,14 @@ register(
         if (model.selectionIsCollapsed) {
           // 2.1/ Select entire zone
           let first = atom;
-          while (first && first.mode === 'text') first = first.leftSibling;
+          while (first?.mode === 'text') first = first.leftSibling;
           let last = atom;
           while (last.rightSibling?.mode === 'text') last = last.rightSibling;
           if (first && last) return select(model, [first, last]);
         }
         if (atom.rightSibling.mode === 'text') {
           let next = atom;
-          while (next && next.mode === 'text') next = next.rightSibling;
+          while (next?.mode === 'text') next = next.rightSibling;
           // Leap to after text zone
           if (next) {
             leapTo(model, next.leftSibling ?? next);
@@ -581,7 +571,7 @@ register(
         // If found a text atom, select the entire zone
         if (sibling.mode === 'text') {
           let last = sibling;
-          while (last && last.mode === 'text') last = last.rightSibling;
+          while (last?.mode === 'text') last = last.rightSibling;
           return select(model, [
             sibling.leftSibling ?? sibling,
             last.leftSibling ?? last,
@@ -634,12 +624,12 @@ register(
         if (model.selectionIsCollapsed) {
           // 2.1/ Select entire zone
           let first = atom;
-          while (first && first.mode === 'text') first = first.leftSibling;
+          while (first?.mode === 'text') first = first.leftSibling;
           let last = atom;
           while (last.rightSibling?.mode === 'text') last = last.rightSibling;
           if (first && last) return select(model, [first, last]);
         }
-        while (atom && atom.mode === 'text') atom = atom.leftSibling;
+        while (atom?.mode === 'text') atom = atom.leftSibling;
         if (atom) return leapTo(model, atom);
         // If text zone is first zone, move to start of mathfield
         return leapTo(model, 0);
@@ -678,7 +668,7 @@ register(
           // If found a text atom, select the entire zone
           if (sibling.mode === 'text') {
             let first = sibling;
-            while (first && first.mode === 'text') first = first.leftSibling;
+            while (first?.mode === 'text') first = first.leftSibling;
             return select(model, [sibling, first]);
           }
           return select(model, sibling);

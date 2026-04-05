@@ -1,4 +1,3 @@
-/* eslint-disable no-new */
 import type { StaticRenderOptions } from './public/options';
 export * from './public/mathlive';
 
@@ -16,6 +15,9 @@ import {
   convertLatexToSpeakableText,
   convertMathJsonToLatex,
 } from './public/mathlive-ssr';
+
+import './public/math-static-elements';
+export { MathSpanElement, MathDivElement } from './public/math-static-elements';
 
 export {
   MenuItemType,
@@ -132,6 +134,8 @@ export function renderMathInElement(
   optionsPrivate.serializeToLatex ??= convertMathJsonToLatex;
   _renderMathInElement(el, optionsPrivate);
 }
+
+export { mountMathVirtualKeyboard as initVirtualKeyboardInCurrentBrowsingContext } from 'virtual-keyboard/global';
 
 /**
  * Current version: `{{SDK_VERSION}}`

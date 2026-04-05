@@ -9,6 +9,7 @@ import { getCommandSuggestionRange } from '../editor-mathfield/mode-editor-latex
 import { PromptAtom } from '../atoms/prompt';
 import { getLocalDOMRect } from 'editor-mathfield/utils';
 import { _Mathfield } from 'editor-mathfield/mathfield-private';
+import { deleteRange } from './delete';
 
 /*
  * Calculates the offset of the "next word".
@@ -65,11 +66,7 @@ export function wordBoundaryOffset(
 
     // Skip whitespace
     let i = offset;
-    while (
-      model.at(i) &&
-      model.at(i).mode === 'text' &&
-      /\s/.test(model.at(i).value)
-    )
+    while (model.at(i)?.mode === 'text' && /\s/.test(model.at(i).value))
       i += dir;
 
     if (!model.at(i)) {
@@ -88,11 +85,7 @@ export function wordBoundaryOffset(
     // (3)
     let i = offset;
     // Skip non-whitespace
-    while (
-      model.at(i) &&
-      model.at(i).mode === 'text' &&
-      !/\s/.test(model.at(i).value)
-    )
+    while (model.at(i)?.mode === 'text' && !/\s/.test(model.at(i).value))
       i += dir;
 
     result = model.at(i) ? i : i - dir;
@@ -116,12 +109,13 @@ export function wordBoundaryOffset(
  * than the current focus.
  * If `extend` is true, the selection will be extended. Otherwise, it is
  * collapsed, then moved.
+ * If `delete` is true, the skipped range is removed.
  * @todo array
  */
 export function skip(
   model: _Model,
   direction: 'forward' | 'backward',
-  options?: { extend: boolean }
+  options?: { extend?: boolean; delete?: boolean }
 ): boolean {
   const previousPosition = model.position;
 
@@ -274,16 +268,26 @@ export function skip(
       model.announce('plonk');
       return false;
     }
+    model.announce('move', previousPosition);
   } else {
     if (offset === model.position) {
       model.announce('plonk');
       return false;
     }
 
-    model.position = offset;
+    if (options?.delete ?? false) {
+      if (direction === 'forward')
+        deleteRange(model, [previousPosition, offset], 'deleteWordForward');
+      else {
+        deleteRange(model, [previousPosition, offset], 'deleteWordBackward');
+        model.position = offset;
+      }
+    } else {
+      model.position = offset;
+      model.announce('move', previousPosition);
+    }
   }
 
-  model.announce('move', previousPosition);
   model.mathfield.stopCoalescingUndo();
   return true;
 }
@@ -392,7 +396,7 @@ function isValidPosition(model: _Model, pos: number): boolean {
 
 function getClosestAtomToXPosition(
   mathfield: _Mathfield,
-  search: Readonly<Atom[]>,
+  search: readonly Atom[],
   x: number
 ): Atom {
   let prevX = Infinity;
@@ -421,7 +425,7 @@ function getClosestAtomToXPosition(
 function moveToClosestAtomVertically(
   model: _Model,
   fromAtom: Atom,
-  toAtoms: Readonly<Atom[]>,
+  toAtoms: readonly Atom[],
   extend: boolean,
   direction: 'up' | 'down'
 ) {

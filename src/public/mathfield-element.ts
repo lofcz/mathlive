@@ -142,7 +142,7 @@ const gDeferredState = new WeakMap<
     value: string | undefined;
     selection: Selection;
     options: Partial<MathfieldOptions>;
-    menuItems: Readonly<MenuItem[]> | undefined;
+    menuItems: readonly MenuItem[] | undefined;
   }
 >();
 
@@ -549,7 +549,7 @@ export class MathfieldElement extends HTMLElement implements Mathfield {
    * Custom elements lifecycle hooks
    * @internal
    */
-  static get observedAttributes(): Readonly<string[]> {
+  static get observedAttributes(): readonly string[] {
     return [
       ...Object.keys(this.optionsAttributes),
       'contenteditable', // Global attribute
@@ -1024,6 +1024,32 @@ export class MathfieldElement extends HTMLElement implements Mathfield {
   /** @internal */
   private static _decimalSeparator: ',' | '.' = '.';
 
+  /** The template used to format numbers in scientific notation.
+   * The template should include the placeholders `#1` and `#2`, which will
+   * be replaced by the significand and exponent, respectively.
+   *
+   * The template is used when typing a number in scientific notation, e.g.
+   * `1.23e4`, which will be rendered as `1.23×10^4`.
+   *
+   * **Default**: `'#1\\times10^{#2}'`
+   *
+   * Other common formats include:
+   * - `'#1\\,\\mathrm{E}\\mathop{#2}'` (e.g. `1.23\,\mathrm{E}\mathop{-4}`)
+   *
+   * @category Localization
+   */
+  static set scientificNotationTemplate(value: string | null) {
+    this._scientificNotationTemplate = value;
+  }
+
+  static get scientificNotationTemplate(): string | null {
+    return this._scientificNotationTemplate;
+  }
+
+  /** @internal */
+  private static _scientificNotationTemplate: string | null =
+    '#1\\times10^{#2}';
+
   /**
    * When using the keyboard to navigate a fraction, the order in which the
    * numerator and navigator are traversed:
@@ -1401,6 +1427,11 @@ export class MathfieldElement extends HTMLElement implements Mathfield {
     return this._mathfield?.getPrompts(filter) ?? [];
   }
 
+  /** True if the mathfield has editable content, such as unlocked prompts */
+  get hasEditableContent(): boolean {
+    return this._mathfield?.hasEditableContent ?? false;
+  }
+
   /** @internal */
   get form(): HTMLFormElement | null {
     return this._internals?.['form'];
@@ -1472,7 +1503,7 @@ import 'https://esm.run/@cortex-js/compute-engine';
    * Return an array of LaTeX syntax errors, if any.
    * @category Accessing and changing the content
    */
-  get errors(): Readonly<LatexSyntaxError[]> {
+  get errors(): readonly LatexSyntaxError[] {
     return this._mathfield?.errors ?? [];
   }
 
@@ -1534,7 +1565,8 @@ import 'https://esm.run/@cortex-js/compute-engine';
     const defaultOptions = getDefaultOptions();
     const options = this._getOptions();
     Object.keys(MathfieldElement.optionsAttributes).forEach((x) => {
-      const prop = toCamelCase(x);
+      // Handle special case: 'placeholder' attribute maps to 'contentPlaceholder' option
+      const prop = x === 'placeholder' ? 'contentPlaceholder' : toCamelCase(x);
       if (MathfieldElement.optionsAttributes[x] === 'on/off') {
         if (defaultOptions[prop] !== options[prop])
           this.setAttribute(x, options[prop] ? 'on' : 'off');
@@ -1782,6 +1814,7 @@ import "https://esm.run/@cortex-js/compute-engine";
    *
    */
   focus(): void {
+    if (this.disabled) return;
     this._mathfield?.focus();
   }
 
@@ -1922,17 +1955,11 @@ import "https://esm.run/@cortex-js/compute-engine";
     // Also, if the menu is open
     if (this._mathfield?.menu?.state !== 'closed') return;
 
-    if (evt.type === 'pointerdown') {
-      this.onPointerDown();
-      // Some browsers (Firefox, Chrome) will get into a zombie focus state
-      // if the padding area is clicked on when the mathfield was already
-      // focused. We force the keyboard delegate to blur and refocus to
-      // prevent this.
-      const kbdDelegate = this._mathfield?.keyboardDelegate;
-      kbdDelegate?.blur();
-      kbdDelegate?.focus();
-    }
-    if (evt.type === 'focus') this._mathfield?.focus();
+    if (evt.type === 'pointerdown') this.onPointerDown();
+
+    // The private mathfield handles focus/blur events directly,
+    // so we don't need to call focus() or blur() here
+    if (evt.type === 'focus') return;
 
     // Ignore blur events if the scrim is open (case where the variant panel
     // is open), or if we're in an iFrame on a touch device (see #2350).
@@ -1945,7 +1972,9 @@ import "https://esm.run/@cortex-js/compute-engine";
     // Otherwise we disconnect from the VK and end up in a weird state.
     if (Scrim.scrim?.state !== 'closed' || (touch && isInIframe())) return;
 
-    this._mathfield?.blur();
+    // Call onBlur directly to handle the blur, without dispatching events
+    // (the DOM already dispatched them)
+    this._mathfield?.onBlur({ dispatchEvents: false });
   }
 
   /**
@@ -2246,7 +2275,7 @@ import "https://esm.run/@cortex-js/compute-engine";
     this._setOptions({ defaultMode: value });
   }
 
-  /** 
+  /**
    * A dictionary of LaTeX macros to be used to interpret and render the content.
    *
    * For example, to add a new macro to the default macro dictionary:
@@ -2357,7 +2386,7 @@ mf.macros = {
     this._setOptions({ backgroundColorMap: value });
   }
 
-  /** 
+  /**
   * Control the letter shape style:
 
   | `letterShapeStyle` | xyz | ABC | αβɣ | ΓΔΘ |
@@ -2384,8 +2413,8 @@ mf.macros = {
   * As for roman uppercase, they are recommended by "Lexique des règles
   * typographiques en usage à l’Imprimerie Nationale". It should be noted
   * that this convention is not universally followed.
-  * 
-  * @category Customization 
+  *
+  * @category Customization
 */
   get letterShapeStyle(): 'auto' | 'tex' | 'iso' | 'french' | 'upright' {
     return this._getOption('letterShapeStyle');
@@ -2396,7 +2425,7 @@ mf.macros = {
 
   /**
    * Set the minimum relative font size for nested superscripts and fractions. The value
-   * should be a number between `0` and `1`. The size is in releative `em` units relative to the
+   * should be a number between `0` and `1`. The size is in relative `em` units relative to the
    * font size of the `math-field` element. Specifying a value of `0` allows the `math-field`
    * to use its default sizing logic.
    *
@@ -2581,12 +2610,11 @@ mf.macros = {
    * @category Customization
    */
   get placeholder(): string {
-    return this.getAttribute('placeholder') ?? '';
+    return this._getOption('contentPlaceholder');
   }
 
   set placeholder(value: string) {
-    if (typeof value !== 'string') return;
-    this._mathfield?.setOptions({ contentPlaceholder: value });
+    this._setOptions({ contentPlaceholder: value });
   }
 
   /**
@@ -2624,12 +2652,12 @@ mf.macros = {
    * @category Menu
    */
 
-  get menuItems(): Readonly<MenuItem[]> {
+  get menuItems(): readonly MenuItem[] {
     if (!this._mathfield) throw new Error('Mathfield not mounted');
     return this._mathfield.menu._menuItems.map((x) => x.menuItem) ?? [];
   }
 
-  set menuItems(menuItems: Readonly<MenuItem[]>) {
+  set menuItems(menuItems: readonly MenuItem[]) {
     if (!this._mathfield) throw new Error('Mathfield not mounted');
     if (this._mathfield) {
       const btn =
@@ -2696,11 +2724,11 @@ mf.macros = {
   }
 
   /** @category Keyboard Shortcuts   */
-  get keybindings(): Readonly<Keybinding[]> {
+  get keybindings(): readonly Keybinding[] {
     if (!this._mathfield) throw new Error('Mathfield not mounted');
     return this._getOption('keybindings');
   }
-  set keybindings(value: Readonly<Keybinding[]>) {
+  set keybindings(value: readonly Keybinding[]) {
     if (!this._mathfield) throw new Error('Mathfield not mounted');
     this._setOptions({ keybindings: value });
   }
@@ -2798,14 +2826,6 @@ mf.macros = {
   /** @category Prompts */
   getPromptState(id: string): ['correct' | 'incorrect' | undefined, boolean] {
     return this._mathfield?.getPromptState(id) ?? [undefined, true];
-  }
-
-  /** @category Virtual Keyboard */
-  get virtualKeyboardTargetOrigin(): string {
-    return this._getOption('virtualKeyboardTargetOrigin');
-  }
-  set virtualKeyboardTargetOrigin(value: string) {
-    this._setOptions({ virtualKeyboardTargetOrigin: value });
   }
 
   /**
