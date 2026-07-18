@@ -45,6 +45,7 @@ export class VirtualKeyboard implements VirtualKeyboardInterface, EventTarget {
   private _rebuilding: boolean;
   private readonly observer: ResizeObserver;
   private originalContainerBottomPadding: string | null = null;
+  private userHeight: number | null = null;
 
   private connectedMathfieldWindow: Window | undefined;
   private readonly listeners: {
@@ -77,6 +78,7 @@ export class VirtualKeyboard implements VirtualKeyboardInterface, EventTarget {
     }
 
     this.render();
+    this.adjustBoundingRect();
   }
 
   /**
@@ -347,8 +349,41 @@ export class VirtualKeyboard implements VirtualKeyboardInterface, EventTarget {
     return new DOMRect();
   }
 
+  get plateHeight(): number {
+    return (
+      this._element
+        ?.querySelector<HTMLElement>('.MLK__plate')
+        ?.getBoundingClientRect().height ?? 0
+    );
+  }
+
+  setUserHeight(height: number): void {
+    const plate = this._element?.querySelector<HTMLElement>('.MLK__plate');
+    if (!plate) return;
+
+    const minimum = 96;
+    const maximum = Math.max(minimum, window.innerHeight - 16);
+    this.userHeight = Math.min(Math.max(height, minimum), maximum);
+    plate.style.height = `${this.userHeight}px`;
+    this.adjustBoundingRect();
+  }
+
+  pageRows(delta: number): void {
+    const layer = this._element?.querySelector<HTMLElement>(
+      '.MLK__layer.is-visible'
+    );
+    if (!layer) return;
+
+    const pageCount = Number(layer.dataset.pageCount ?? 1);
+    const currentPage = Number(layer.dataset.page ?? 0);
+    const page = Math.min(Math.max(currentPage + delta, 0), pageCount - 1);
+    layer.dataset.page = String(page);
+    this.updatePaging();
+  }
+
   adjustBoundingRect(): void {
     if (!this._element) return;
+    this.updatePaging();
     // Adjust the keyboard height
     const h = this.boundingRect.height;
     if (this.container === document.body) {
@@ -361,6 +396,70 @@ export class VirtualKeyboard implements VirtualKeyboardInterface, EventTarget {
         ? `calc(${this.originalContainerBottomPadding} + ${keyboardHeight}px)`
         : `${keyboardHeight}px`;
     } else this._element.style.setProperty('--_keyboard-height', `${h}px`);
+  }
+
+  private updatePaging(): void {
+    if (!this._element) return;
+
+    for (const layer of this._element.querySelectorAll<HTMLElement>(
+      '.MLK__layer'
+    )) {
+      const viewport = layer.querySelector<HTMLElement>('.MLK__rows-viewport');
+      const rows = layer.querySelectorAll<HTMLElement>(
+        '.MLK__rows > .MLK__row'
+      );
+      const rowContainer = layer.querySelector<HTMLElement>('.MLK__rows');
+      const previous = layer.querySelector<HTMLButtonElement>('.MLK__page-up');
+      const next = layer.querySelector<HTMLButtonElement>('.MLK__page-down');
+      if (!viewport || !rowContainer || !previous || !next || rows.length === 0)
+        continue;
+
+      rows.forEach((row) => row.classList.remove('is-paged-out'));
+      previous.hidden = true;
+      next.hidden = true;
+      layer.dataset.pageCount = '1';
+
+      if (rowContainer.scrollHeight <= viewport.clientHeight) {
+        layer.dataset.page = '0';
+        continue;
+      }
+
+      previous.hidden = false;
+      next.hidden = false;
+      const availableHeight = Math.max(
+        1,
+        viewport.clientHeight - previous.offsetHeight - next.offsetHeight
+      );
+      const gap = parseFloat(getComputedStyle(rowContainer).rowGap) || 0;
+      const pages: number[][] = [];
+      let page: number[] = [];
+      let pageHeight = 0;
+
+      rows.forEach((row, index) => {
+        const rowHeight = row.offsetHeight + (page.length > 0 ? gap : 0);
+        if (page.length > 0 && pageHeight + rowHeight > availableHeight) {
+          pages.push(page);
+          page = [];
+          pageHeight = 0;
+        }
+        page.push(index);
+        pageHeight += row.offsetHeight + (page.length > 1 ? gap : 0);
+      });
+      if (page.length > 0) pages.push(page);
+
+      const pageIndex = Math.min(
+        Math.max(Number(layer.dataset.page ?? 0), 0),
+        pages.length - 1
+      );
+      layer.dataset.page = String(pageIndex);
+      layer.dataset.pageCount = String(pages.length);
+      const visibleRows = new Set(pages[pageIndex]);
+      rows.forEach((row, index) =>
+        row.classList.toggle('is-paged-out', !visibleRows.has(index))
+      );
+      previous.disabled = pageIndex === 0;
+      next.disabled = pageIndex === pages.length - 1;
+    }
   }
 
   // adjustBoundingRect(): void {
@@ -578,6 +677,10 @@ export class VirtualKeyboard implements VirtualKeyboardInterface, EventTarget {
       { capture: true }
     );
     this.container?.appendChild(this.element);
+    if (this.userHeight !== null) {
+      const plate = this.element.querySelector<HTMLElement>('.MLK__plate');
+      if (plate) plate.style.height = `${this.userHeight}px`;
+    }
   }
 
   handleEvent(

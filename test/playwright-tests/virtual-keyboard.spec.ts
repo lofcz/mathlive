@@ -48,6 +48,69 @@ test('virtual-keyboard-toggle visibility', async ({ page }) => {
   ).toBe(false);
 });
 
+test('virtual keyboard can be resized and page overflowing rows', async ({
+  page,
+}) => {
+  await page.goto('/dist/playwright-test-page/');
+
+  await page.evaluate(() => {
+    window.mathVirtualKeyboard.layouts = [
+      {
+        label: 'paged',
+        layers: [
+          {
+            id: 'paged',
+            rows: Array.from({ length: 16 }, (_, index) => [String(index)]),
+          },
+        ],
+      },
+    ];
+  });
+
+  await page.locator('.ML__virtual-keyboard-toggle').nth(0).click();
+  const handle = page.locator('.MLK__resize-handle');
+  await handle.waitFor();
+  await page.waitForTimeout(350);
+
+  await page.evaluate(() => {
+    (window.mathVirtualKeyboard as any).setUserHeight(500);
+  });
+  await page.waitForTimeout(100);
+
+  const box = await handle.boundingBox();
+  expect(box).toBeTruthy();
+  if (!box) return;
+
+  const heightBeforeDrag = await page
+    .locator('.MLK__plate')
+    .evaluate((plate) => plate.getBoundingClientRect().height);
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(box.x + box.width / 2, box.y + 80);
+  await page.mouse.up();
+  await page.waitForTimeout(100);
+  const heightAfterDrag = await page
+    .locator('.MLK__plate')
+    .evaluate((plate) => plate.getBoundingClientRect().height);
+  expect(heightAfterDrag).toBeLessThan(heightBeforeDrag);
+
+  await page.evaluate(() => {
+    (window.mathVirtualKeyboard as any).setUserHeight(220);
+  });
+  await page.waitForTimeout(100);
+
+  const visibleRows = page.locator(
+    '.MLK__layer.is-visible .MLK__row:not(.is-paged-out)'
+  );
+  expect(await visibleRows.count()).toBeLessThan(16);
+  await expect(page.locator('.MLK__page-down')).toBeVisible();
+
+  await page.locator('.MLK__page-down').click();
+  expect(
+    await page.locator('.MLK__layer.is-visible .MLK__row').first().isVisible()
+  ).toBe(false);
+});
+
 async function virtualKeyboardSample1(
   page: Page,
   options?: KeypressOptions
