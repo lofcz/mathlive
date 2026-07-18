@@ -11,8 +11,7 @@ type KeycapIdentifier =
 
 const keycapLocator = (page: Page, identifier: KeycapIdentifier) => {
   const selectors: string[] = [];
-  const scopedSelector = (sel: string) =>
-    `.MLK__layer.is-visible ${sel}`;
+  const scopedSelector = (sel: string) => `.MLK__layer.is-visible ${sel}`;
 
   if (typeof identifier === 'string') {
     selectors.push(scopedSelector(`[aria-label="${identifier}"]`));
@@ -84,9 +83,12 @@ test('virtual keyboard can be resized and page overflowing rows', async ({
   const heightBeforeDrag = await page
     .locator('.MLK__plate')
     .evaluate((plate) => plate.getBoundingClientRect().height);
+  const pagedRowsBeforeDrag = await page.locator('.is-paged-out').count();
   await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
   await page.mouse.down();
   await page.mouse.move(box.x + box.width / 2, box.y + 80);
+  await page.waitForTimeout(50);
+  expect(await page.locator('.is-paged-out').count()).toBe(pagedRowsBeforeDrag);
   await page.mouse.up();
   await page.waitForTimeout(100);
   const heightAfterDrag = await page
@@ -111,10 +113,7 @@ test('virtual keyboard can be resized and page overflowing rows', async ({
   ).toBe(false);
 });
 
-async function virtualKeyboardSample1(
-  page: Page,
-  options?: KeypressOptions
-) {
+async function virtualKeyboardSample1(page: Page, options?: KeypressOptions) {
   const press = async (identifier: KeycapIdentifier | string) => {
     if (options?.beforeKeyPress) await options.beforeKeyPress();
     await keycapLocator(page, identifier).click();
@@ -134,10 +133,7 @@ async function virtualKeyboardSample1(
   return 'z=\\frac12';
 }
 
-async function virtualKeyboardSample2(
-  page: Page,
-  options?: KeypressOptions
-) {
+async function virtualKeyboardSample2(page: Page, options?: KeypressOptions) {
   const press = async (identifier: KeycapIdentifier | string) => {
     if (options?.beforeKeyPress) await options.beforeKeyPress();
     await keycapLocator(page, identifier).click();

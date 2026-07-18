@@ -1266,6 +1266,7 @@ function beginResize(ev: PointerEvent, keyboard: VirtualKeyboard): void {
   const startY = ev.clientY;
   const startHeight = keyboard.plateHeight;
   const pointerId = ev.pointerId;
+  keyboard.beginUserResize();
 
   const move = (moveEvent: PointerEvent) => {
     if (moveEvent.pointerId !== pointerId) return;
@@ -1277,6 +1278,7 @@ function beginResize(ev: PointerEvent, keyboard: VirtualKeyboard): void {
     window.removeEventListener('pointermove', move);
     window.removeEventListener('pointerup', end);
     window.removeEventListener('pointercancel', end);
+    keyboard.endUserResize();
   };
 
   window.addEventListener('pointermove', move, { passive: false });

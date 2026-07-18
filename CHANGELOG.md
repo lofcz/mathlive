@@ -74,6 +74,11 @@
 
 ### Improvements
 
+- Improved virtual keyboard resizing performance by caching row measurements and
+  deferring row paging changes until the resize gesture ends. Paging controls
+  remain mounted while disabled, avoiding layout churn as the keyboard height
+  changes.
+
 - Added Catalan (`ca`) localization. (contributed by @aaronFortuno)
 
 ## 0.109.1 _2026-04-01_

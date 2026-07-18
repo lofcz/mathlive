@@ -46,6 +46,11 @@ export class VirtualKeyboard implements VirtualKeyboardInterface, EventTarget {
   private readonly observer: ResizeObserver;
   private originalContainerBottomPadding: string | null = null;
   private userHeight: number | null = null;
+  private userResizing = false;
+  private readonly rowMetricsCache = new WeakMap<
+    HTMLElement,
+    { width: number; gap: number; heights: number[] }
+  >();
 
   private connectedMathfieldWindow: Window | undefined;
   private readonly listeners: {
@@ -368,6 +373,15 @@ export class VirtualKeyboard implements VirtualKeyboardInterface, EventTarget {
     this.adjustBoundingRect();
   }
 
+  beginUserResize(): void {
+    this.userResizing = true;
+  }
+
+  endUserResize(): void {
+    this.userResizing = false;
+    this.adjustBoundingRect();
+  }
+
   pageRows(delta: number): void {
     const layer = this._element?.querySelector<HTMLElement>(
       '.MLK__layer.is-visible'
@@ -383,7 +397,7 @@ export class VirtualKeyboard implements VirtualKeyboardInterface, EventTarget {
 
   adjustBoundingRect(): void {
     if (!this._element) return;
-    this.updatePaging();
+    if (!this.userResizing) this.updatePaging();
     // Adjust the keyboard height
     const h = this.boundingRect.height;
     if (this.container === document.body) {
@@ -414,51 +428,78 @@ export class VirtualKeyboard implements VirtualKeyboardInterface, EventTarget {
       if (!viewport || !rowContainer || !previous || !next || rows.length === 0)
         continue;
 
-      rows.forEach((row) => row.classList.remove('is-paged-out'));
-      previous.hidden = true;
-      next.hidden = true;
-      layer.dataset.pageCount = '1';
-
-      if (rowContainer.scrollHeight <= viewport.clientHeight) {
-        layer.dataset.page = '0';
-        continue;
-      }
-
+      // Keep the controls mounted while they are unavailable. Disabled
+      // controls collapse to zero height, so they do not reduce the usable
+      // space unless paging is actually needed.
       previous.hidden = false;
       next.hidden = false;
-      const availableHeight = Math.max(
-        1,
-        viewport.clientHeight - previous.offsetHeight - next.offsetHeight
-      );
+      previous.disabled = true;
+      next.disabled = true;
       const gap = parseFloat(getComputedStyle(rowContainer).rowGap) || 0;
-      const pages: number[][] = [];
-      let page: number[] = [];
-      let pageHeight = 0;
+      const width = rowContainer.clientWidth;
+      let metrics = this.rowMetricsCache.get(rowContainer);
+      if (
+        !metrics ||
+        metrics.width !== width ||
+        metrics.gap !== gap ||
+        metrics.heights.length !== rows.length
+      ) {
+        // Measure the complete, unpaged layer once. Reusing these measurements
+        // avoids layout reads and visibility churn during every resize event.
+        rows.forEach((row) => row.classList.remove('is-paged-out'));
+        metrics = {
+          width,
+          gap,
+          heights: Array.from(rows, (row) => row.offsetHeight),
+        };
+        this.rowMetricsCache.set(rowContainer, metrics);
+      }
 
-      rows.forEach((row, index) => {
-        const rowHeight = row.offsetHeight + (page.length > 0 ? gap : 0);
-        if (page.length > 0 && pageHeight + rowHeight > availableHeight) {
-          pages.push(page);
-          page = [];
-          pageHeight = 0;
-        }
-        page.push(index);
-        pageHeight += row.offsetHeight + (page.length > 1 ? gap : 0);
-      });
-      if (page.length > 0) pages.push(page);
+      const buildPages = (availableHeight: number): number[][] => {
+        const pages: number[][] = [];
+        let page: number[] = [];
+        let pageHeight = 0;
 
+        metrics!.heights.forEach((rowHeight, index) => {
+          const measuredRowHeight = rowHeight || 1;
+          const rowWithGap = measuredRowHeight + (page.length > 0 ? gap : 0);
+          if (page.length > 0 && pageHeight + rowWithGap > availableHeight) {
+            pages.push(page);
+            page = [];
+            pageHeight = 0;
+          }
+          page.push(index);
+          pageHeight += measuredRowHeight + (page.length > 1 ? gap : 0);
+        });
+        if (page.length > 0) pages.push(page);
+        return pages;
+      };
+
+      let pages = buildPages(Math.max(1, viewport.clientHeight));
+      if (pages.length > 1) {
+        previous.disabled = false;
+        next.disabled = false;
+        pages = buildPages(
+          Math.max(
+            1,
+            viewport.clientHeight - previous.offsetHeight - next.offsetHeight
+          )
+        );
+      }
+
+      const pageCount = Math.max(1, pages.length);
       const pageIndex = Math.min(
         Math.max(Number(layer.dataset.page ?? 0), 0),
-        pages.length - 1
+        pageCount - 1
       );
       layer.dataset.page = String(pageIndex);
-      layer.dataset.pageCount = String(pages.length);
-      const visibleRows = new Set(pages[pageIndex]);
+      layer.dataset.pageCount = String(pageCount);
+      const visibleRows = new Set(pages[pageIndex] ?? []);
       rows.forEach((row, index) =>
         row.classList.toggle('is-paged-out', !visibleRows.has(index))
       );
       previous.disabled = pageIndex === 0;
-      next.disabled = pageIndex === pages.length - 1;
+      next.disabled = pageIndex === pageCount - 1;
     }
   }
 
