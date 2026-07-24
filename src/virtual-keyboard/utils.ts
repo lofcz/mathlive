@@ -1266,7 +1266,14 @@ function beginResize(ev: PointerEvent, keyboard: VirtualKeyboard): void {
   const startY = ev.clientY;
   const startHeight = keyboard.plateHeight;
   const pointerId = ev.pointerId;
+  const captureTarget =
+    ev.currentTarget instanceof HTMLElement ? ev.currentTarget : null;
   keyboard.beginUserResize();
+  try {
+    captureTarget?.setPointerCapture(pointerId);
+  } catch {
+    // Pointer capture is unavailable in a few embedded/test environments.
+  }
 
   const move = (moveEvent: PointerEvent) => {
     if (moveEvent.pointerId !== pointerId) return;
@@ -1278,6 +1285,12 @@ function beginResize(ev: PointerEvent, keyboard: VirtualKeyboard): void {
     window.removeEventListener('pointermove', move);
     window.removeEventListener('pointerup', end);
     window.removeEventListener('pointercancel', end);
+    try {
+      if (captureTarget?.hasPointerCapture(pointerId))
+        captureTarget.releasePointerCapture(pointerId);
+    } catch {
+      // The pointer may already have been released by the browser.
+    }
     keyboard.endUserResize();
   };
 

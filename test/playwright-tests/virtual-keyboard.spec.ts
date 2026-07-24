@@ -86,7 +86,14 @@ test('virtual keyboard can be resized and page overflowing rows', async ({
   const pagedRowsBeforeDrag = await page.locator('.is-paged-out').count();
   await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
   await page.mouse.down();
-  await page.mouse.move(box.x + box.width / 2, box.y + 80);
+  expect(
+    await handle.evaluate((element) =>
+      (element as HTMLElement).hasPointerCapture(1)
+    )
+  ).toBe(true);
+  // Continue the gesture well outside the keyboard. Pointer capture should
+  // keep the resize active until the button is released.
+  await page.mouse.move(20, 20);
   await page.waitForTimeout(50);
   expect(await page.locator('.is-paged-out').count()).toBe(pagedRowsBeforeDrag);
   await page.mouse.up();
@@ -94,7 +101,7 @@ test('virtual keyboard can be resized and page overflowing rows', async ({
   const heightAfterDrag = await page
     .locator('.MLK__plate')
     .evaluate((plate) => plate.getBoundingClientRect().height);
-  expect(heightAfterDrag).toBeLessThan(heightBeforeDrag);
+  expect(heightAfterDrag).toBeGreaterThan(heightBeforeDrag);
 
   await page.evaluate(() => {
     (window.mathVirtualKeyboard as any).setUserHeight(220);
