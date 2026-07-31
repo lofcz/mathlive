@@ -205,7 +205,7 @@ defineFunction(
       // has been turned off (some people find the compact form confusing).
       // See a discussion on this topic here: https://tex.stackexchange.com/questions/82329/how-bad-for-tex-is-omitting-braces-even-if-the-result-is-the-same
       if (
-        _MathEnvironment.compactFractionSerialization &&
+        _MathEnvironment.compactSerialization &&
         /^[0-9]$/.test(numer) &&
         /^[0-9]$/.test(denom)
       )
