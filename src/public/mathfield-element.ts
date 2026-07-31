@@ -1083,6 +1083,24 @@ export class MathfieldElement extends HTMLElement implements Mathfield {
   }
 
   /**
+   * When `true` (the default), fractions whose numerator and denominator
+   * are both single digits are serialized in a compact form, e.g.
+   * `\frac12`.
+   *
+   * When `false`, fractions are always serialized with explicit braces,
+   * e.g. `\frac{1}{2}`.
+   *
+   * **Default**: `true`
+   * @category Customization
+   */
+  static get compactFractionSerialization(): boolean {
+    return _MathEnvironment.compactFractionSerialization;
+  }
+  static set compactFractionSerialization(value: boolean) {
+    _MathEnvironment.compactFractionSerialization = Boolean(value);
+  }
+
+  /**
    * A custom compute engine instance. If none is provided, a default one is
    * used. If `null` is specified, no compute engine is used.
    */

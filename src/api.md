@@ -803,6 +803,26 @@ manually.
 
 </MemberCard>
 
+<MemberCard>
+
+##### MathfieldElement.compactFractionSerialization
+
+```ts
+get static compactFractionSerialization(): boolean
+set static compactFractionSerialization(value: boolean): void
+```
+
+When `true` (the default), fractions whose numerator and denominator
+are both single digits are serialized in a compact form, e.g.
+`\frac12`.
+
+When `false`, fractions are always serialized with explicit braces,
+e.g. `\frac{1}{2}`.
+
+**Default**: `true`
+
+</MemberCard>
+
 #### Styles
 
 <MemberCard>
