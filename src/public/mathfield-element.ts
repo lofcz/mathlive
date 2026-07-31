@@ -1084,10 +1084,13 @@ export class MathfieldElement extends HTMLElement implements Mathfield {
 
   /**
    * When `true` (the default), single-digit arguments are serialized in a
-   * compact form, without braces: `\frac12`, `\sqrt2`.
+   * compact form, without braces: `\frac12`, `\sqrt2`, `x^2`.
    *
    * When `false`, arguments are always serialized with explicit braces:
-   * `\frac{1}{2}`, `\sqrt{2}`.
+   * `\frac{1}{2}`, `\sqrt{2}`, `x^{2}`.
+   *
+   * The compact form is valid LaTeX, but can be hard to read when a digit
+   * follows: `\frac123` is one half followed by 3, not 1/23.
    *
    * **Default**: `true`
    * @category Customization
