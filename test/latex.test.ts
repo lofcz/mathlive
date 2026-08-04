@@ -4,6 +4,7 @@ import {
 } from '../src/public/mathlive-ssr';
 import { parseLatex } from '../src/core/parser';
 import { Atom } from '../src/core/atom-class';
+import { ArrayAtom } from '../src/atoms/array';
 
 function markupAndError(formula: string): [string, string] {
   const markup = convertLatexToMarkup(formula, { defaultMode: 'math' });
@@ -137,6 +138,38 @@ describe('VARIANT SERIALIZATION (issue #2867)', () => {
     ['\\mathbb{N}_{abc}', '\\mathbb{N}_{abc}'],
   ])('%#/ %p serializes as %p', (input, expected) => {
     expect(serialize(input)).toBe(expected);
+  });
+});
+
+describe('PIECEWISE COMMAND', () => {
+  function serialize(latex: string): string {
+    const atoms = parseLatex(latex, { parseMode: 'math' });
+    return Atom.serialize(atoms, { defaultMode: 'math' });
+  }
+
+  test.each([2, 3])('creates %p editable rows', (rows) => {
+    const atom = parseLatex(`\\piecewise{${rows}}`)[0];
+    expect(atom).toBeInstanceOf(ArrayAtom);
+    expect((atom as ArrayAtom).rowCount).toBe(rows);
+
+    let placeholders = 0;
+    (atom as ArrayAtom).forEachCell((cell) => {
+      placeholders += cell.filter((x) => x.type === 'placeholder').length;
+    });
+    expect(placeholders).toBe(rows * 2);
+    expect(serialize(`\\piecewise{${rows}}`)).toBe(
+      `\\begin{cases}${Array.from(
+        { length: rows },
+        () => `\\placeholder{} & \\placeholder{}`
+      ).join('\\\\ ')}\\end{cases}`
+    );
+  });
+
+  test('validates the command', () => {
+    expect(validateLatex('\\piecewise{2}')).toHaveLength(0);
+    expect(validateLatex('\\piecewise')[0]?.code).toBe('missing-argument');
+    expect(validateLatex('\\piecewise{0}')[0]?.code).toBe('unexpected-token');
+    expect(validateLatex('\\piecewise{2a}')[0]?.code).toBe('unexpected-token');
   });
 });
 
