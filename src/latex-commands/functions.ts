@@ -216,6 +216,53 @@ defineFunction(
   }
 );
 
+// amsmath `\genfrac{left}{right}{thickness}{style}{num}{denom}`
+// thickness: empty = default bar, `0pt` = no bar
+// style: 0=display, 1=text, 2=script, 3=scriptscript, empty=current
+defineFunction(
+  'genfrac',
+  '{:delim}{:delim}{:string}{:string}{:expression}{:expression}',
+  {
+    ifMode: 'math',
+    createAtom: (options) => {
+      const args = options.args as [
+        string | null,
+        string | null,
+        string | null,
+        string | null,
+        Argument | null,
+        Argument | null,
+      ];
+      const leftDelim = args[0] && args[0] !== '.' ? args[0] : undefined;
+      const rightDelim = args[1] && args[1] !== '.' ? args[1] : undefined;
+      const thickness = (args[2] ?? '').trim();
+      const styleCode = (args[3] ?? '').trim();
+      const hasBarLine = thickness !== '0pt' && thickness !== '0';
+      const mathstyleName =
+        (
+          {
+            '0': 'displaystyle',
+            '1': 'textstyle',
+            '2': 'scriptstyle',
+            '3': 'scriptscriptstyle',
+          } as const
+        )[styleCode] ?? undefined;
+
+      return new GenfracAtom(
+        !args[4] ? [new PlaceholderAtom()] : argAtoms(args[4]),
+        !args[5] ? [new PlaceholderAtom()] : argAtoms(args[5]),
+        {
+          ...options,
+          leftDelim,
+          rightDelim,
+          hasBarLine,
+          mathstyleName,
+        }
+      );
+    },
+  }
+);
+
 defineFunction(['cfrac'], '[:string]{:expression}{:expression}', {
   ifMode: 'math',
   createAtom: (options) => {
@@ -395,6 +442,7 @@ const EXTENSIBLE_SYMBOLS = {
   int: '\u222B',
   iint: '\u222C',
   iiint: '\u222D',
+  iiiint: '\u2A0C', // amsmath quadruple integral
   oint: '\u222E',
   oiint: '\u222F',
   oiiint: '\u2230',

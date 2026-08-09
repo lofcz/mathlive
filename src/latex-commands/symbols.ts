@@ -728,7 +728,21 @@ defineSymbols(
 );
 // \enspace is a TeX command (not LaTeX)
 defineFunction(
-  ['!', ',', ':', ';', '>', 'enskip', 'enspace', 'quad', 'qquad'],
+  [
+    '!',
+    ',',
+    ':',
+    ';',
+    '>',
+    'enskip',
+    'enspace',
+    'quad',
+    'qquad',
+    'thinspace',
+    'negthinspace',
+    'medspace',
+    'thickspace',
+  ],
   '',
   {
     createAtom: (options) => new SpacingAtom(options),

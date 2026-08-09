@@ -132,3 +132,23 @@ defineFunction('xcancel', '{body:auto}', {
       }
     ),
 });
+
+// ulem `\sout` — horizontal strike-through
+defineFunction('sout', '{body:auto}', {
+  createAtom: (options) =>
+    new EncloseAtom(
+      options.command!,
+      argAtoms(options.args![0]),
+      { horizontalstrike: true },
+      {
+        strokeColor: 'currentColor',
+        strokeWidth: '',
+        strokeStyle: 'solid',
+        borderStyle: '1px solid currentColor',
+        backgroundcolor: 'transparent',
+        padding: 'auto',
+        shadow: 'none',
+        style: options.style ?? {},
+      }
+    ),
+});

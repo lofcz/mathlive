@@ -4,6 +4,17 @@
 
 - Added amsmath `\dots` as a first-class math symbol (same glyph as `\ldots`),
   plus `\dotso` / `\dotsc` / `\dotsb` / `\dotsm` / `\dotsi` macros.
+- Expanded school/AI LaTeX compatibility:
+  - Spacing: `\thinspace`, `\negthinspace`, `\medspace`, `\thickspace`
+  - Delimiters: `\abs`, `\norm`, `\floor`, `\ceil` (+ starred forms)
+  - Plain-TeX: `\matrix{}`, `\pmatrix{}`, `\bmatrix{}`, `\cases{}`, `\cr`
+  - amsmath: `\pod`, `\substack`, `\genfrac`, `\iiiint`, `\idotsint`,
+    capital accents (`\Hat`…`\Vec`), display helpers (`\tag`, `\notag`,
+    `\label`, `\intertext`, `\leftroot`/`\uproot`, `\shoveleft`/`\shoveright`)
+  - Operators: `\DeclareMathOperator`, `\tr`/`\trace`, `\rank`, `\diag`, `\span`
+  - physics.sty: `\dd`, `\dv`, `\pdv`, `\diff`, `\derivative`, `\qty`
+  - siunitx: `\SI`, `\unit`
+  - Misc: `\fbox`, `\sout`, `\centernot`
 
 ## 0.110.0 _2026-06-08_
 

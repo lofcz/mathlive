@@ -214,6 +214,64 @@ describe('AMS ELLIPSIS (\\dots)', () => {
   });
 });
 
+describe('COMPAT COMMANDS (school / AI latex)', () => {
+  test.each([
+    // spacing
+    'a\\thinspace b',
+    'a\\negthinspace b',
+    'a\\medspace b',
+    'a\\thickspace b',
+    // abs / floor / ceil / norm
+    '\\abs{x}',
+    '\\norm{v}',
+    '\\floor{x}',
+    '\\ceil{x}',
+    // plain-TeX matrices / cases / cr
+    '\\matrix{a & b \\\\ c & d}',
+    '\\pmatrix{a\\\\b}',
+    '\\cases{x & x>0}',
+    'a\\cr b',
+    // operators
+    '\\DeclareMathOperator{\\Hom}{Hom}',
+    '\\tr A',
+    '\\trace A',
+    '\\rank A',
+    '\\diag A',
+    '\\span V',
+    // amsmath
+    '\\pod{n}',
+    '\\substack{a\\\\b}',
+    '\\genfrac{(}{)}{0pt}{}{a}{b}',
+    '\\iiiint',
+    '\\idotsint',
+    '\\Hat{A}',
+    '\\Vec{v}',
+    '\\tag{1}',
+    '\\notag',
+    '\\label{eq1}',
+    '\\intertext{hi}',
+    '\\leftroot{1}\\uproot{2}\\sqrt{x}',
+    // physics / siunitx
+    '\\dd{x}',
+    '\\dv{y}{x}',
+    '\\pdv{f}{x}',
+    '\\diff{y}{x}',
+    '\\derivative{y}{x}',
+    '\\qty{x}',
+    '\\SI{3}{m}',
+    '\\unit{m}',
+    // misc
+    '\\fbox{x}',
+    '\\sout{x}',
+    '\\centernot{\\equiv}',
+  ])('%s validates', (tex) => {
+    const unknown = validateLatex(tex).filter(
+      (e) => e.code === 'unknown-command' || e.code === 'unknown-environment'
+    );
+    expect(unknown).toHaveLength(0);
+  });
+});
+
 describe('VALIDATE LATEX WITH MACROS', () => {
   test('custom macro is not flagged as unknown', () => {
     const errors = validateLatex('\\plimsoll', { macros: { plimsoll: '⦵' } });

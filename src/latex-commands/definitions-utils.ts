@@ -179,6 +179,45 @@ export const AMSMATH_MACROS: MacroDictionary = {
   dotsm: '\\cdots', // dots with multiplication
   dotsi: '\\cdots', // dots with integrals
 
+  // Spacing aliases thinspace/negthinspace/medspace/thickspace are
+  // registered as SpacingAtom commands in symbols.ts.
+
+  // Multi-integrals
+  idotsint: '\\int\\!\\cdots\\!\\int',
+
+  // Substack for limits
+  substack: {
+    def: '\\begin{smallmatrix}#1\\end{smallmatrix}',
+    args: 1,
+    captureSelection: false,
+  },
+
+  // Display / align helpers — no-ops or text so validation succeeds
+  tag: { def: '', args: 1 },
+  notag: '',
+  label: { def: '', args: 1 },
+  numberthis: '',
+  intertext: { def: '\\text{#1}', args: 1, captureSelection: false },
+  shoveleft: '',
+  shoveright: '',
+  // Nonstandard alias seen in the wild
+  moveright: '',
+  // Root nudges — consume the argument; visual adjust is ignored
+  leftroot: { def: '', args: 1 },
+  uproot: { def: '', args: 1 },
+
+  // Capital accents (amsmath) → lowercase accents
+  Hat: { def: '\\hat{#1}', args: 1, captureSelection: false },
+  Check: { def: '\\check{#1}', args: 1, captureSelection: false },
+  Tilde: { def: '\\tilde{#1}', args: 1, captureSelection: false },
+  Acute: { def: '\\acute{#1}', args: 1, captureSelection: false },
+  Grave: { def: '\\grave{#1}', args: 1, captureSelection: false },
+  Dot: { def: '\\dot{#1}', args: 1, captureSelection: false },
+  Ddot: { def: '\\ddot{#1}', args: 1, captureSelection: false },
+  Breve: { def: '\\breve{#1}', args: 1, captureSelection: false },
+  Bar: { def: '\\bar{#1}', args: 1, captureSelection: false },
+  Vec: { def: '\\vec{#1}', args: 1, captureSelection: false },
+
   // From http://tug.ctan.org/macros/latex/required/amsmath/amsmath.dtx
   // > \newcommand{\pod}[1]{
   // >    \allowbreak
@@ -193,6 +232,13 @@ export const AMSMATH_MACROS: MacroDictionary = {
   // > \renewcommand{\pmod}[1]{
   // >  \pod{{\operator@font mod}\mkern6mu#1}
   // > }
+
+  pod: {
+    def: '\\quad(#1)',
+    args: 1,
+    expand: false,
+    captureSelection: false,
+  },
 
   pmod: {
     def: '\\quad(\\operatorname{mod}\\ #1)',
@@ -228,6 +274,126 @@ export const AMSMATH_MACROS: MacroDictionary = {
     def: '\\;\\mathbin{\\operatorname{mod }}',
     expand: false,
   },
+};
+
+/** mathtools / physics-style absolute value helpers */
+export const MATHOOLS_EXTRA_MACROS: MacroDictionary = {
+  abs: { def: '\\left\\lvert #1\\right\\rvert', args: 1, captureSelection: false },
+  norm: { def: '\\left\\lVert #1\\right\\rVert', args: 1, captureSelection: false },
+  floor: {
+    def: '\\left\\lfloor #1\\right\\rfloor',
+    args: 1,
+    captureSelection: false,
+  },
+  ceil: {
+    def: '\\left\\lceil #1\\right\\rceil',
+    args: 1,
+    captureSelection: false,
+  },
+  // starred forms used by some generators
+  'floor*': {
+    def: '\\left\\lfloor #1\\right\\rfloor',
+    args: 1,
+    captureSelection: false,
+  },
+  'ceil*': {
+    def: '\\left\\lceil #1\\right\\rceil',
+    args: 1,
+    captureSelection: false,
+  },
+  'abs*': {
+    def: '\\left\\lvert #1\\right\\rvert',
+    args: 1,
+    captureSelection: false,
+  },
+  'norm*': {
+    def: '\\left\\lVert #1\\right\\rVert',
+    args: 1,
+    captureSelection: false,
+  },
+};
+
+/** physics.sty — common school / AI emissions */
+export const PHYSICS_MACROS: MacroDictionary = {
+  dd: { def: '\\mathrm{d}#1', args: 1, captureSelection: false },
+  dv: {
+    def: '\\frac{\\mathrm{d}#1}{\\mathrm{d}#2}',
+    args: 2,
+    captureSelection: false,
+  },
+  pdv: {
+    def: '\\frac{\\partial #1}{\\partial #2}',
+    args: 2,
+    captureSelection: false,
+  },
+  diff: {
+    def: '\\frac{\\mathrm{d}#1}{\\mathrm{d}#2}',
+    args: 2,
+    captureSelection: false,
+  },
+  derivative: {
+    def: '\\frac{\\mathrm{d}#1}{\\mathrm{d}#2}',
+    args: 2,
+    captureSelection: false,
+  },
+  qty: {
+    def: '\\left(#1\\right)',
+    args: 1,
+    captureSelection: false,
+  },
+};
+
+/** Minimal siunitx-compatible shims for inline formulas */
+export const SIUNITX_MACROS: MacroDictionary = {
+  // \SI{3}{\metre} / \SI{3}{m} → 3\,\mathrm{m}
+  SI: {
+    def: '#1\\,\\mathrm{#2}',
+    args: 2,
+    captureSelection: false,
+  },
+  unit: { def: '\\mathrm{#1}', args: 1, captureSelection: false },
+};
+
+/** Plain-TeX / old-LaTeX command forms still common from AI output */
+export const PLAIN_TEX_MACROS: MacroDictionary = {
+  matrix: {
+    def: '\\begin{matrix}#1\\end{matrix}',
+    args: 1,
+    captureSelection: false,
+  },
+  pmatrix: {
+    def: '\\begin{pmatrix}#1\\end{pmatrix}',
+    args: 1,
+    captureSelection: false,
+  },
+  bmatrix: {
+    def: '\\begin{bmatrix}#1\\end{bmatrix}',
+    args: 1,
+    captureSelection: false,
+  },
+  Bmatrix: {
+    def: '\\begin{Bmatrix}#1\\end{Bmatrix}',
+    args: 1,
+    captureSelection: false,
+  },
+  vmatrix: {
+    def: '\\begin{vmatrix}#1\\end{vmatrix}',
+    args: 1,
+    captureSelection: false,
+  },
+  Vmatrix: {
+    def: '\\begin{Vmatrix}#1\\end{Vmatrix}',
+    args: 1,
+    captureSelection: false,
+  },
+  // Plain TeX \cases{...} (env form is \begin{cases})
+  cases: {
+    def: '\\begin{cases}#1\\end{cases}',
+    args: 1,
+    captureSelection: false,
+  },
+  // Row break
+  cr: '\\\\',
 };
 
 // From `braket.sty`, Dirac notation
@@ -414,6 +580,35 @@ const DEFAULT_MACROS: MacroDictionary = {
   'argmax': '\\operatorname*{arg\\,max}',
   'plim': '\\mathop{\\operatorname{plim}}\\limits',
 
+  // Linear algebra / operator names often emitted by models
+  'tr': '\\operatorname{tr}',
+  'trace': '\\operatorname{tr}',
+  'rank': '\\operatorname{rank}',
+  'diag': '\\operatorname{diag}',
+  // Math operator form (TeX also has a table `\span` primitive — not used here)
+  'span': '\\operatorname{span}',
+
+  // amsmath / amsopn — declaration form; renders as the operator name
+  'DeclareMathOperator': {
+    def: '\\operatorname{#2}',
+    args: 2,
+    captureSelection: false,
+  },
+
+  // centernot.sty — approximate with \not
+  'centernot': {
+    def: '\\not{#1}',
+    args: 1,
+    captureSelection: false,
+  },
+
+  // fbox ≈ boxed (auto mode vs display; close enough for input)
+  'fbox': {
+    def: '\\boxed{#1}',
+    args: 1,
+    captureSelection: false,
+  },
+
   // mhchem
 
   'tripledash': {
@@ -423,6 +618,22 @@ const DEFAULT_MACROS: MacroDictionary = {
   'braket.sty': { package: BRAKET_MACROS } as MacroPackageDefinition,
   'amsmath.sty': {
     package: AMSMATH_MACROS,
+    primitive: true,
+  } as MacroPackageDefinition,
+  'mathtools-extra.sty': {
+    package: MATHOOLS_EXTRA_MACROS,
+    primitive: true,
+  } as MacroPackageDefinition,
+  'physics.sty': {
+    package: PHYSICS_MACROS,
+    primitive: true,
+  } as MacroPackageDefinition,
+  'siunitx.sty': {
+    package: SIUNITX_MACROS,
+    primitive: true,
+  } as MacroPackageDefinition,
+  'plain-tex-compat.sty': {
+    package: PLAIN_TEX_MACROS,
     primitive: true,
   } as MacroPackageDefinition,
   'texvc.sty': {
@@ -575,7 +786,7 @@ const NATURAL_LANGUAGE_ALIASES: Record<string, string[]> = {
   'times': ['\\times'],
   'divide': ['\\div', '\\frac'],
   'fraction': ['\\frac'],
-  'integral': ['\\int', '\\iint', '\\iiint'],
+  'integral': ['\\int', '\\iint', '\\iiint', '\\iiiint', '\\idotsint'],
   'sum': ['\\sum'],
   'product': ['\\prod'],
   'infinity': ['\\infty'],
