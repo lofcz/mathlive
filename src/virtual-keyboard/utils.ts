@@ -237,7 +237,7 @@ function alphabeticLayout(): NormalizedVirtualKeyboardLayout {
     '[.]',
     '[left]',
     '[right]',
-    { label: '[action]', width: 1.5 },
+    { label: '[return]', width: 1.5 },
   ]);
 
   return {
@@ -848,8 +848,8 @@ export const KEYCAP_SHORTCUTS: Record<
   },
   '[return]': {
     class: 'action hide-shift',
-    command: 'performWithFeedback(commit)',
-    shift: { command: 'performWithFeedback(addRowAfter)' },
+    insert: '\\\\',
+    shift: { command: 'performWithFeedback(commit)' },
     width: 1.5,
     label: '<svg class=svg-glyph><use xlink:href=#svg-commit /></svg>',
   },

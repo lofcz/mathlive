@@ -28,6 +28,7 @@ import { TextAtom } from '../atoms/text';
 import { TooltipAtom } from '../atoms/tooltip';
 import { PromptAtom } from '../atoms/prompt';
 import { OperatorAtom } from '../atoms/operator';
+import { NewLineAtom } from '../atoms/newline';
 import type { Argument } from 'latex-commands/types';
 import type { AtomJson, AtomType } from './types';
 
@@ -69,6 +70,7 @@ export function fromJson(json: AtomJson | AtomJson[]): Atom | Atom[] {
   if (type === 'leftright') result = LeftRightAtom.fromJson(json);
   if (type === 'macro') result = MacroAtom.fromJson(json);
   if (type === 'macro-argument') result = MacroArgumentAtom.fromJson(json);
+  if (type === 'newline') result = NewLineAtom.fromJson(json);
   if (type === 'operator') result = OperatorAtom.fromJson(json);
   if (type === 'overlap') result = OverlapAtom.fromJson(json);
   if (type === 'overunder') result = OverunderAtom.fromJson(json);

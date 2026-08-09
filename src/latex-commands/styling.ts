@@ -7,6 +7,7 @@ import { SizedDelimAtom } from '../atoms/delim';
 import { SpacingAtom } from '../atoms/spacing';
 import { OverunderAtom } from '../atoms/overunder';
 import { OverlapAtom } from '../atoms/overlap';
+import { NewLineAtom } from '../atoms/newline';
 import '../atoms/genfrac';
 
 import { argAtoms, defineFunction } from './definitions-utils';
@@ -849,6 +850,11 @@ defineFunction(['mkern', 'kern', 'mskip', 'hskip', 'mspace'], '{width:value}', {
       ...options,
       width: options.args![0] ?? { dimension: 0 },
     }),
+});
+
+// New line
+defineFunction('\\', '', {
+  createAtom: (options) => new NewLineAtom(options),
 });
 
 defineFunction('mathchoice', '{:math}{:math}{:math}{:math}', {

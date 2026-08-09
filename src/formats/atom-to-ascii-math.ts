@@ -424,6 +424,10 @@ export function atomToAsciiMath(
       result = IDENTIFIERS[latex] ?? IDENTIFIERS[command] ?? ' ';
       break;
 
+    case 'newline':
+      result = '\n';
+      break;
+
     case 'enclose':
       result = '(' + atomToAsciiMath(atom.body, options) + ')';
       break;

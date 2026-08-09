@@ -74,6 +74,7 @@ const BOX_TYPE = [
   'latex',
   'composition',
   'middle', // A box type used by the `\middle` command
+  'newline', // A line break from the `\\` command
   'ignore', // A box that should be ignored during inter-box spacing, e.g. sup/sub atoms
   'lift', // For inter-box spacing, the children of the box should be lifted as
   // if they were present instead of the box
@@ -245,6 +246,7 @@ export type AtomType =
   | 'line' // Used by `\overline` and `\underline`
   | 'macro'
   | 'macro-argument'
+  | 'newline' // New line command: `\\`
   | 'subsup' // A carrier for a superscript/subscript
   | 'operator' // A function, including special functions, `\sin`
   | 'overlap' // Display a symbol _over_ another

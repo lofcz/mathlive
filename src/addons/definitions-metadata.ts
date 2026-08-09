@@ -1033,6 +1033,7 @@ metadata(
   COMMON,
   '\\char"203A$0\\char"2039'
 );
+metadata('Spacing', ['\\\\'], COMMON); // New Line
 metadata(
   'Spacing',
   ['\\!', '\\,', '\\:', '\\;', '\\>', '\\enskip', '\\enspace'],

@@ -465,6 +465,10 @@ export function atomToTypst(atom: Atom | readonly Atom[] | undefined): string {
       result = IDENTIFIERS[latex] ?? IDENTIFIERS[command] ?? ' ';
       break;
 
+    case 'newline':
+      result = '\\\n';
+      break;
+
     case 'space':
       result = ' ';
       break;

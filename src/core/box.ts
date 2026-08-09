@@ -27,6 +27,7 @@ export function boxType(type: AtomType | undefined): BoxType | undefined {
     mpunct: 'punct',
     minner: 'inner',
     spacing: 'ignore',
+    newline: 'newline',
     latex: 'latex',
     composition: 'inner',
     error: 'inner',

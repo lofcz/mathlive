@@ -107,6 +107,8 @@ export function applyInterBoxSpacing(root: Box, context: Context): Box {
   traverseBoxes(boxes, (prev, cur) => {
     if (!prev) return;
     const prevType = prev.type;
+    // No inter-atom spacing after a line break
+    if (prevType === 'newline') return;
     const table = cur.isTight
       ? (INTER_BOX_TIGHT_SPACING[prevType] ?? null)
       : (INTER_BOX_SPACING[prevType] ?? null);

@@ -890,6 +890,10 @@ function atomToMathML(atom: Atom, options: { generateID?: boolean }): string {
     case 'overlap':
       break;
 
+    case 'newline':
+      result += '<mspace linebreak="newline"></mspace>';
+      break;
+
     case 'overunder':
       const overunderAtom = atom as OverunderAtom;
       overscript = atom.above;

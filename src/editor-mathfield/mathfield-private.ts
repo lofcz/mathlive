@@ -1216,11 +1216,13 @@ If you are using Vue, this may be because you are using the runtime-only build o
       globalThis.MathfieldElement.playSound('keypress');
     }
 
-    if (s === '\\\\') {
-      // This string is interpreted as an "insert row after" command
+    // Inside an array/environment, `\\` and `&` manipulate rows/columns.
+    // Elsewhere, `\\` inserts a newline atom (and `&` is inserted as content).
+    if (s === '\\\\' && this.model.parentEnvironment) {
       addRowAfter(this.model);
-    } else if (s === '&') addColumnAfter(this.model);
-    else {
+    } else if (s === '&' && this.model.parentEnvironment) {
+      addColumnAfter(this.model);
+    } else {
       if (this.model.selectionIsCollapsed) {
         const style = { ...computeInsertStyle(this) };
         // If we're inserting a non-alphanumeric character, reset the variant

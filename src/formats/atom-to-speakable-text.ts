@@ -667,6 +667,9 @@ function atomToSpeakableFragment(
     case 'spacing':
       // @todo
       break;
+    case 'newline':
+      result += ' newline ';
+      break;
   }
 
   if (!supsubHandled && !atom.hasEmptyBranch('superscript')) {
