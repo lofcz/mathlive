@@ -21,6 +21,7 @@ const publishPackage = {
   types: rootPackage.types,
   exports: rootPackage.exports,
   dependencies: rootPackage.dependencies,
+  publishConfig: rootPackage.publishConfig ?? { access: 'public' },
   files: [
     // Optional: if you want to be explicit
     './*.js',

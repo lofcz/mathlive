@@ -1,13 +1,16 @@
 {
-  "name": "mathlive",
+  "name": "@lofcz/mathlive",
   "version": "0.110.0",
-  "description": "A web component for math input",
+  "description": "A web component for math input (lofcz fork)",
   "license": "MIT",
   "funding": {
     "type": "individual",
     "url": "https://paypal.me/arnogourdol"
   },
   "private": true,
+  "publishConfig": {
+    "access": "public"
+  },
   "files": [
     "/dist"
   ],
@@ -48,9 +51,9 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/arnog/mathlive.git"
+    "url": "git+https://github.com/lofcz/mathlive.git"
   },
-  "bugs": "https://github.com/arnog/mathlive/issues/",
+  "bugs": "https://github.com/lofcz/mathlive/issues",
   "scripts": {
     "doc": "bash ./scripts/update-docs.sh",
     "build": "bash ./scripts/build.sh",
