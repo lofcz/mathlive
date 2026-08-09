@@ -103,6 +103,7 @@ function scanIdentifier(stream: MathMLStream, final: number, options) {
     '\\hbar': '\u210F',
     '\\cdotp': '\u22C5',
     '\\ldots': '\u2026',
+    '\\dots': '\u2026',
     '\\cdots': '\u22EF',
     '\\ddots': '\u22F1',
     '\\vdots': '\u22EE',

@@ -1052,6 +1052,7 @@ metadata(
     '\\colon',
     '\\cdotp',
     '\\ldots',
+    '\\dots',
     '\\cdots',
     '\\ddots',
     '\\vdots',
@@ -1065,7 +1066,20 @@ metadata(
   ],
   COMMON
 );
-metadata('Punctuation', ['\\mathellipsis', '\\ldotp', '\\Colon'], RARE);
+metadata(
+  'Punctuation',
+  [
+    '\\mathellipsis',
+    '\\ldotp',
+    '\\Colon',
+    '\\dotso',
+    '\\dotsc',
+    '\\dotsb',
+    '\\dotsm',
+    '\\dotsi',
+  ],
+  RARE
+);
 
 metadata('Boxes', ['\\square', '\\Box'], COMMON);
 metadata(

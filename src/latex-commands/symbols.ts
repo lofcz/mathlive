@@ -756,6 +756,8 @@ defineSymbols(
     ['\\cdots', 0x22ef],
     ['\\ddots', 0x22f1],
     ['\\ldots', 0x2026],
+    // amsmath `\dots` — context-sensitive in TeX; low ellipsis is the common default
+    ['\\dots', 0x2026],
     ['\\mathellipsis', 0x2026],
   ],
   'minner'

@@ -1,3 +1,10 @@
+## Unreleased
+
+### New Features
+
+- Added amsmath `\dots` as a first-class math symbol (same glyph as `\ldots`),
+  plus `\dotso` / `\dotsc` / `\dotsb` / `\dotsm` / `\dotsi` macros.
+
 ## 0.110.0 _2026-06-08_
 
 ### Security Advisories

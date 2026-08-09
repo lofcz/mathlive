@@ -105,6 +105,8 @@ const PRONUNCIATION: Record<string, string> = {
 
   '\\cdot': 'times ',
   '\\cdots': 'dot dot dot ',
+  '\\ldots': 'dot dot dot ',
+  '\\dots': 'dot dot dot ',
 
   '\\Rightarrow': 'implies ',
 

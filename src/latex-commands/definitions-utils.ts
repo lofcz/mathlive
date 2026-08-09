@@ -170,6 +170,15 @@ export const AMSMATH_MACROS: MacroDictionary = {
   varPsi: '\\mathit{\\Psi}',
   varOmega: '\\mathit{\\Omega}',
 
+  // Ellipsis variants (amsmath.dtx). `\dots` itself is a symbol (see symbols.ts);
+  // these choose low vs midline ellipsis for specific contexts.
+  // https://ctan.org/pkg/amsmath
+  dotso: '\\ldots', // dots with ordinary / end of sentence
+  dotsc: '\\ldots', // dots with commas
+  dotsb: '\\cdots', // dots with binary ops / relations
+  dotsm: '\\cdots', // dots with multiplication
+  dotsi: '\\cdots', // dots with integrals
+
   // From http://tug.ctan.org/macros/latex/required/amsmath/amsmath.dtx
   // > \newcommand{\pod}[1]{
   // >    \allowbreak
@@ -448,6 +457,7 @@ const TEXT_SYMBOLS: Record<string, number> = {
   '\\rbrack': 0x005d,
   '\\nobreakspace': 0x00a0,
   '\\ldots': 0x2026,
+  '\\dots': 0x2026,
   '\\textellipsis': 0x2026,
   '\\backslash': 0x005c,
   '`': 0x2018,

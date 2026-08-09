@@ -194,6 +194,26 @@ describe('MATHRM SERIALIZATION (issue #2818)', () => {
   });
 });
 
+describe('AMS ELLIPSIS (\\dots)', () => {
+  test('\\dots is a known command', () => {
+    expect(validateLatex('1,2,\\dots,n')).toHaveLength(0);
+  });
+
+  test('\\dots renders like \\ldots', () => {
+    expect(convertLatexToMarkup('a\\dots b')).toBe(
+      convertLatexToMarkup('a\\ldots b')
+    );
+  });
+
+  test('amsmath dots variants resolve', () => {
+    expect(validateLatex('a\\dotso b')).toHaveLength(0);
+    expect(validateLatex('a\\dotsc b')).toHaveLength(0);
+    expect(validateLatex('a+\\dotsb+b')).toHaveLength(0);
+    expect(validateLatex('a\\dotsm b')).toHaveLength(0);
+    expect(validateLatex('\\int\\dotsi')).toHaveLength(0);
+  });
+});
+
 describe('VALIDATE LATEX WITH MACROS', () => {
   test('custom macro is not flagged as unknown', () => {
     const errors = validateLatex('\\plimsoll', { macros: { plimsoll: '⦵' } });
