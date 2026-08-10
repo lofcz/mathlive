@@ -407,7 +407,17 @@ export function makeEditToolbar(
             <svg><use xlink:href='#svg-paste' /></svg>
         </div>
     `,
+    hideVirtualKeyboard: `
+        <div class='action'
+            data-command='"hideVirtualKeyboard"'
+            data-tooltip='${l10n('tooltip.toggle virtual keyboard')}'>
+            <svg><use xlink:href='#svg-keyboard-down' /></svg>
+        </div>
+    `,
   };
+
+  // Always offer a way to dismiss the keyboard from the edit toolbar.
+  availableActions.push('hideVirtualKeyboard');
 
   // The right hand side of the toolbar, with the copy/undo/redo commands
   result += availableActions.map((action) => actionsMarkup[action]).join('');

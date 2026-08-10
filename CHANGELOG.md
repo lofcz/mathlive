@@ -1,5 +1,4 @@
-## Unreleased
-
+## 0.110.1 _2026-08-10_
 ### New Features
 
 - Added amsmath `\dots` as a first-class math symbol (same glyph as `\ldots`),
