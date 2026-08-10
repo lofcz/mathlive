@@ -63,7 +63,7 @@
     "prepare": "bash ./scripts/build.sh production",
     "start": "bash ./scripts/start.sh",
     "test": "bash ./scripts/test.sh",
-    "version": "bash ./scripts/version.sh"
+    "version": "node ./scripts/version.mjs"
   },
   "author": "Arno Gourdol <arno@arno.org>",
   "contributors": [
