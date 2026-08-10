@@ -11,10 +11,18 @@
   - amsmath: `\pod`, `\substack`, `\genfrac`, `\iiiint`, `\idotsint`,
     capital accents (`\Hat`…`\Vec`), display helpers (`\tag`, `\notag`,
     `\label`, `\intertext`, `\leftroot`/`\uproot`, `\shoveleft`/`\shoveright`)
-  - Operators: `\DeclareMathOperator`, `\tr`/`\trace`, `\rank`, `\diag`, `\span`
+  - Operators: `\DeclareMathOperator` / `\DeclareMathOperator*` (registers the
+    operator for later use in the same expression), `\tr`/`\trace`, `\rank`,
+    `\diag`, `\span`, `\proj`
   - physics.sty: `\dd`, `\dv`, `\pdv`, `\diff`, `\derivative`, `\qty`
   - siunitx: `\SI`, `\unit`
   - Misc: `\fbox`, `\sout`, `\centernot`
+
+### Resolved Issues
+
+- Fixed `\genfrac` delimiter arguments (`\genfrac{(}{)}{0pt}{}{a}{b}` now
+  matches `\binom{a}{b}`). Braced delim args are taken as strings because the
+  parser’s braced-argument path does not scan `:delim`.
 
 ## 0.110.0 _2026-06-08_
 

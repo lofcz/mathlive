@@ -231,6 +231,7 @@ describe('COMPAT COMMANDS (school / AI latex)', () => {
     '\\pmatrix{a\\\\b}',
     '\\cases{x & x>0}',
     'a\\cr b',
+    '\\matrix{a & b \\cr c & d}',
     // operators
     '\\DeclareMathOperator{\\Hom}{Hom}',
     '\\tr A',
@@ -269,6 +270,31 @@ describe('COMPAT COMMANDS (school / AI latex)', () => {
       (e) => e.code === 'unknown-command' || e.code === 'unknown-environment'
     );
     expect(unknown).toHaveLength(0);
+  });
+
+  test.each([
+    ['\\abs{x}', '\\left\\lvert x\\right\\rvert'],
+    ['\\norm{v}', '\\left\\lVert v\\right\\rVert'],
+    ['\\floor{x}', '\\left\\lfloor x\\right\\rfloor'],
+    ['\\ceil{x}', '\\left\\lceil x\\right\\rceil'],
+    ['\\genfrac{}{}{}{}{a}{b}', '\\frac{a}{b}'],
+    ['\\genfrac{}{}{}{0}{a}{b}', '\\dfrac{a}{b}'],
+    ['\\genfrac{}{}{}{1}{a}{b}', '\\tfrac{a}{b}'],
+    ['\\genfrac{(}{)}{0pt}{}{a}{b}', '\\binom{a}{b}'],
+    ['\\proj V', '\\operatorname{proj} V'],
+  ])('%s markup matches %s', (input, alias) => {
+    expect(convertLatexToMarkup(input)).toBe(convertLatexToMarkup(alias));
+  });
+
+  test('\\DeclareMathOperator registers the operator for later use', () => {
+    expect(
+      validateLatex('\\DeclareMathOperator{\\Hom}{Hom}\\Hom(V,W)').filter(
+        (e) => e.code === 'unknown-command'
+      )
+    ).toHaveLength(0);
+    expect(
+      convertLatexToMarkup('\\DeclareMathOperator{\\Hom}{Hom}\\Hom(V,W)')
+    ).toBe(convertLatexToMarkup('\\operatorname{Hom}(V,W)'));
   });
 });
 

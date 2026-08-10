@@ -14,6 +14,27 @@ export LINECLEAR="\033[1G\033[2K" # position to column 1; erase whole line
 
 cd "$(dirname "$0")/.."
 
+# Git Bash / WSL often lack a usable `node` on PATH in non-interactive shells.
+# (WSL can see `node.exe` but will not run a bare `node` command.)
+if ! command -v node >/dev/null 2>&1 || ! node -v >/dev/null 2>&1; then
+  NODE_EXE=""
+  for candidate in \
+    "/mnt/c/Program Files/nodejs/node.exe" \
+    "/c/Program Files/nodejs/node.exe" \
+    "/c/Program Files (x86)/nodejs/node.exe"
+  do
+    if [ -x "$candidate" ]; then
+      NODE_EXE="$candidate"
+      break
+    fi
+  done
+  if [ -n "$NODE_EXE" ]; then
+    SHIM_DIR="$(mktemp -d)"
+    printf '#!/bin/sh\nexec "%s" "$@"\n' "$NODE_EXE" >"$SHIM_DIR/node"
+    chmod +x "$SHIM_DIR/node"
+    export PATH="$SHIM_DIR:$PATH"
+  fi
+fi
 # If no "node_modules" directory, do an install first
 if [ ! -d "./node_modules" ]; then
     printf "${DOT}Installing dependencies"

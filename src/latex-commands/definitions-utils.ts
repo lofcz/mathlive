@@ -587,13 +587,7 @@ const DEFAULT_MACROS: MacroDictionary = {
   'diag': '\\operatorname{diag}',
   // Math operator form (TeX also has a table `\span` primitive — not used here)
   'span': '\\operatorname{span}',
-
-  // amsmath / amsopn — declaration form; renders as the operator name
-  'DeclareMathOperator': {
-    def: '\\operatorname{#2}',
-    args: 2,
-    captureSelection: false,
-  },
+  'proj': '\\operatorname{proj}',
 
   // centernot.sty — approximate with \not
   'centernot': {

@@ -16,6 +16,7 @@ import { Box } from '../core/box';
 import { OperatorAtom } from '../atoms/operator';
 import type { CreateAtomOptions } from 'core/types';
 import type { Argument } from './types';
+import type { Parser } from '../core/parser';
 
 defineFunction(
   [
@@ -217,11 +218,13 @@ defineFunction(
 );
 
 // amsmath `\genfrac{left}{right}{thickness}{style}{num}{denom}`
+// Delims are `:string` (not `:delim`) because braced delim args aren't
+// scanned by the parser's braced-argument path.
 // thickness: empty = default bar, `0pt` = no bar
 // style: 0=display, 1=text, 2=script, 3=scriptscript, empty=current
 defineFunction(
   'genfrac',
-  '{:delim}{:delim}{:string}{:string}{:expression}{:expression}',
+  '{:string}{:string}{:string}{:string}{:expression}{:expression}',
   {
     ifMode: 'math',
     createAtom: (options) => {
@@ -233,10 +236,13 @@ defineFunction(
         Argument | null,
         Argument | null,
       ];
-      const leftDelim = args[0] && args[0] !== '.' ? args[0] : undefined;
-      const rightDelim = args[1] && args[1] !== '.' ? args[1] : undefined;
+      const leftRaw = (args[0] ?? '').trim();
+      const rightRaw = (args[1] ?? '').trim();
+      const leftDelim = leftRaw && leftRaw !== '.' ? leftRaw : undefined;
+      const rightDelim = rightRaw && rightRaw !== '.' ? rightRaw : undefined;
       const thickness = (args[2] ?? '').trim();
       const styleCode = (args[3] ?? '').trim();
+      // Empty thickness → default bar; explicit 0 / 0pt → no bar (amsmath)
       const hasBarLine = thickness !== '0pt' && thickness !== '0';
       const mathstyleName =
         (
@@ -571,4 +577,70 @@ defineFunction('the', '{:value}', {
   },
   serialize: (atom) =>
     `\\the${serializeLatexValue(atom.args![0] as LatexValue) ?? '\\relax'}`,
+});
+
+// amsopn `\DeclareMathOperator{\Hom}{Hom}` / `\DeclareMathOperator*{\argmax}{arg\,max}`
+// Registers `\Hom` for the remainder of the parse (unlike a simple macro expand).
+function parseDeclareMathOperator(parser: Parser, starred: boolean): Argument[] {
+  parser.skipFiller();
+  let cmd = parser.scanLiteralGroup();
+  if (!cmd) {
+    const tok = parser.peek();
+    if (tok?.startsWith('\\')) {
+      cmd = tok;
+      parser.next();
+    }
+  }
+  const opName = parser.scanArgument('string')?.trim() ?? '';
+  const name = (cmd.startsWith('\\') ? cmd.slice(1) : cmd).trim();
+  if (name && opName) {
+    parser.defineLocalMacro(name, {
+      def: starred
+        ? `\\operatorname*{${opName}}`
+        : `\\operatorname{${opName}}`,
+      args: 0,
+      captureSelection: false,
+    });
+  }
+  return [cmd, opName];
+}
+
+function createDeclareMathOperatorAtom(options: CreateAtomOptions): Atom {
+  return new Atom({
+    type: 'mord',
+    mode: 'math',
+    command: options.command,
+    value: '',
+    args: options.args,
+    style: options.style,
+  });
+}
+
+function serializeDeclareMathOperator(
+  atom: Atom,
+  starred: boolean
+): string {
+  const cmd = (atom.args?.[0] as string) ?? '';
+  const opName = (atom.args?.[1] as string) ?? '';
+  const name = cmd.startsWith('\\') ? cmd : `\\${cmd}`;
+  return starred
+    ? `\\DeclareMathOperator*{${name}}{${opName}}`
+    : `\\DeclareMathOperator{${name}}{${opName}}`;
+}
+
+defineFunction('DeclareMathOperator', '', {
+  ifMode: 'math',
+  parse: (parser) => parseDeclareMathOperator(parser, false),
+  createAtom: createDeclareMathOperatorAtom,
+  // Declaration is a side-effect; do not emit a box (avoids phantom spacing).
+  render: () => null,
+  serialize: (atom) => serializeDeclareMathOperator(atom, false),
+});
+
+defineFunction('DeclareMathOperator*', '', {
+  ifMode: 'math',
+  parse: (parser) => parseDeclareMathOperator(parser, true),
+  createAtom: createDeclareMathOperatorAtom,
+  render: () => null,
+  serialize: (atom) => serializeDeclareMathOperator(atom, true),
 });
