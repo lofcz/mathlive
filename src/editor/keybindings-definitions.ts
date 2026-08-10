@@ -82,9 +82,9 @@ export const DEFAULT_KEYBINDINGS: Keybinding[] = [
   }, // Complete the suggestion
   { key: '[Return]', ifMode: 'latex', command: ['complete', 'accept-all'] },
   { key: '[Enter]', ifMode: 'latex', command: ['complete', 'accept-all'] },
-  { key: '[Return]', ifMode: 'math', command: ['insert', '\\\\'] },
-  { key: '[Enter]', ifMode: 'math', command: ['insert', '\\\\'] },
-  { key: '[NumpadEnter]', ifMode: 'math', command: ['insert', '\\\\'] },
+  // Bare Enter in math mode must not insert `\\` — it is used to commit /
+  // complete (and Ctrl/Cmd/Alt+Enter add rows). Newlines come from typing
+  // `\\`, the virtual-keyboard return key, or multiline row commands.
   {
     key: 'shift+[Escape]',
     ifMode: 'latex',
