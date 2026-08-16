@@ -1,6 +1,6 @@
 {
   "name": "@lofcz/mathlive",
-  "version": "0.110.4",
+  "version": "0.110.5",
   "description": "A web component for math input (lofcz fork)",
   "license": "MIT",
   "funding": {

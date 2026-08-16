@@ -1,5 +1,4 @@
-## Unreleased
-
+## 0.110.5 _2026-08-16_
 ### Improvements
 
 - `\blank{…}` now parses as a math function and renders as `blank(…)` in the
