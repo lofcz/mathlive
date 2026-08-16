@@ -1,3 +1,11 @@
+## Unreleased
+
+### Improvements
+
+- `\blank{…}` now parses as a math function and renders as `blank(…)` in the
+  editor, so the argument stays attached (`\blank{4}` no longer shows as an
+  unknown command plus a leftover `4`).
+
 ## 0.110.4 _2026-08-16_
 ### Improvements
 

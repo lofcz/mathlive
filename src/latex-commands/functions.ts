@@ -629,8 +629,9 @@ function serializeDeclareMathOperator(
     : `\\DeclareMathOperator{${name}}{${opName}}`;
 }
 
-defineFunction('blank', '{:auto}', {
+defineFunction('blank', '{body:auto}', {
   ifMode: 'math',
+  isFunction: true,
   createAtom: (options) =>
     new BlankAtom(argAtoms(options.args![0]), options),
 });

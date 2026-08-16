@@ -76,11 +76,8 @@ export function fromJson(json: AtomJson | AtomJson[]): Atom | Atom[] {
   if (type === 'overlap') result = OverlapAtom.fromJson(json);
   if (type === 'overunder') result = OverunderAtom.fromJson(json);
   if (type === 'placeholder') result = PlaceholderAtom.fromJson(json);
-  if (type === 'prompt')
-    result =
-      json.command === '\\blank'
-        ? BlankAtom.fromJson(json)
-        : PromptAtom.fromJson(json);
+  if (json.command === '\\blank') result = BlankAtom.fromJson(json);
+  else if (type === 'prompt') result = PromptAtom.fromJson(json);
   if (type === 'phantom') result = PhantomAtom.fromJson(json);
   if (type === 'sizeddelim') result = SizedDelimAtom.fromJson(json);
   if (type === 'spacing') result = SpacingAtom.fromJson(json);

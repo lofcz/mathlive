@@ -5,18 +5,16 @@ import { Context } from '../core/context';
 import { latexCommand } from '../core/tokenizer';
 import type { AtomJson, ToLatexOptions } from 'core/types';
 import { Atom } from '../core/atom-class';
-import { PromptAtom } from './prompt';
 import { PlaceholderAtom } from './placeholder';
 
 /**
- * A locked, atomic fill-in-the-blank hole.
+ * A locked fill-in-the-blank hole that serializes as `\blank{answer}`.
  *
- * Unlike `\placeholder[id][locked]{…}`, this command has a dedicated
- * serialization (`\blank{answer}`) so host apps can treat blanks as a
- * first-class token. Rendered as a compact dashed box so it stays
- * readable inside fractions and scripts.
+ * In the editor it renders as a function: `blank(answer)`. That keeps the
+ * argument attached to the command (unlike an unknown `\blank` plus a
+ * leftover `4`) and stays readable inside fractions.
  */
-export class BlankAtom extends PromptAtom {
+export class BlankAtom extends Atom {
   constructor(
     body?: readonly Atom[],
     options?: {
@@ -24,9 +22,15 @@ export class BlankAtom extends PromptAtom {
       style?: Style;
     }
   ) {
-    super(undefined, undefined, true, body, options);
-    this.command = '\\blank';
-    this.captureSelection = true;
+    super({
+      type: 'mop',
+      mode: options?.mode ?? 'math',
+      style: options?.style,
+      command: '\\blank',
+      isFunction: true,
+      captureSelection: true,
+      body,
+    });
   }
 
   static fromJson(json: AtomJson): BlankAtom {
@@ -41,25 +45,37 @@ export class BlankAtom extends PromptAtom {
       this.body.length === 0 ||
       this.body.every((atom) => atom.type === 'first');
 
-    const content = isEffectivelyEmpty
+    const arg = isEffectivelyEmpty
       ? new PlaceholderAtom({
           mode: this.mode,
           style: this.style,
         }).render(parentContext)
       : Atom.createBox(parentContext, this.body);
 
-    if (!content) return null;
+    const name = new Box('blank', {
+      type: 'op',
+      mode: 'math',
+      maxFontSize: context.scalingFactor,
+      style: { variant: 'main', variantStyle: 'up' },
+      isSelected: this.isSelected,
+      letterShapeStyle: context.letterShapeStyle,
+    });
+    const open = new Box('(', {
+      type: 'open',
+      isSelected: this.isSelected,
+      maxFontSize: context.scalingFactor,
+    });
+    const close = new Box(')', {
+      type: 'close',
+      isSelected: this.isSelected,
+      maxFontSize: context.scalingFactor,
+    });
 
-    const result = new Box(content, {
+    const result = new Box([name, open, arg, close], {
       type: 'ord',
       classes: 'ML__blank',
       isSelected: this.isSelected,
     });
-    result.setStyle('display', 'inline-block');
-    result.setStyle('padding-left', 0.18, 'em');
-    result.setStyle('padding-right', 0.18, 'em');
-    result.height = content.height;
-    result.depth = content.depth;
 
     if (this.caret) result.caret = this.caret;
 

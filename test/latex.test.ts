@@ -131,11 +131,12 @@ describe('BLANK COMMAND', () => {
     );
   });
 
-  test('creates a prompt atom that serializes as \\blank', () => {
+  test('parses as a function atom that serializes as \\blank', () => {
     const atoms = parseLatex('\\blank{3}', { parseMode: 'math' });
     const blank = atoms.find((atom) => atom.command === '\\blank');
     expect(blank).toBeDefined();
-    expect(blank?.type).toBe('prompt');
+    expect(blank?.type).toBe('mop');
+    expect(blank?.isFunction).toBe(true);
     expect(blank?.captureSelection).toBe(true);
     expect(serialize('\\blank{3}')).toBe('\\blank{3}');
   });
