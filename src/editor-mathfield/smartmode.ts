@@ -311,9 +311,18 @@ export function smartMode(
     if (/[a-zA-Z]{3,}$/.test(context) && !/(dxd|abc|xyz|uvw)$/.test(context)) {
       // A sequence of three characters
       // (except for some exceptions)
-      // Convert them to text.
-      convertLastAtomsToText(model, undefined, (a) => /[a-zA-Z]/.test(a.value));
-      return true;
+      // Convert them to text — unless they are a prefix of an inline
+      // shortcut (`blank`, `theta`, `sqrt`). Otherwise those never fire.
+      const word = /[a-zA-Z]+$/.exec(context)?.[0] ?? '';
+      const shortcuts = mathfield.options.inlineShortcuts;
+      const isShortcutPrefix =
+        !!word &&
+        !!shortcuts &&
+        Object.keys(shortcuts).some((key) => key.startsWith(word));
+      if (!isShortcutPrefix) {
+        convertLastAtomsToText(model, undefined, (a) => /[a-zA-Z]/.test(a.value));
+        return true;
+      }
     }
 
     if (/(^|\W)(if)$/i.test(context)) {

@@ -5,6 +5,9 @@
 - `\blank{…}` now parses as a math function and renders as `blank(…)` in the
   editor, so the argument stays attached (`\blank{4}` no longer shows as an
   unknown command plus a leftover `4`).
+- Typing `blank` is an inline shortcut for `\blank{#?}`, same as `sin` → `\sin`.
+- Smart mode no longer turns a prefix of an inline shortcut (`bla…` for
+  `blank`, `the…` for `theta`) into text, which blocked those shortcuts.
 
 ## 0.110.4 _2026-08-16_
 ### Improvements

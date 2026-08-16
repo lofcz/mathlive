@@ -82,6 +82,7 @@ export const INLINE_SHORTCUTS: InlineShortcutDefinitions = {
   'sin': '\\sin',
   'cos': '\\cos',
   'tan': '\\tan',
+  'blank': '\\blank{#?}',
 
   'arccos': '\\arccos',
   'arcsin': '\\arcsin',
