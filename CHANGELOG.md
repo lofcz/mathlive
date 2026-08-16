@@ -1,3 +1,11 @@
+## Unreleased
+
+### New Features
+
+- Added `\blank{…}` as a locked, atomic fill-in-the-blank token. It serializes
+  as `\blank{answer}` (unlike `\placeholder[id][locked]{…}`) and renders with
+  the `ML__blank` class so hosts can style the hole.
+
 ## 0.110.1 _2026-08-10_
 ### New Features
 

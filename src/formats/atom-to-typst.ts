@@ -270,7 +270,8 @@ export function atomToTypst(atom: Atom | readonly Atom[] | undefined): string {
   const { command } = atom;
   let m: string[] | null;
 
-  if (command === '\\placeholder') return `"${atomToTypst(atom.body)}"`;
+  if (command === '\\placeholder' || command === '\\blank')
+    return `"${atomToTypst(atom.body)}"`;
 
   const latex = Atom.serialize([atom], {
     expandMacro: true,

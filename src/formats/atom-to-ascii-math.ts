@@ -217,7 +217,7 @@ export function atomToAsciiMath(
   const { command } = atom;
   let m;
 
-  if (command === '\\placeholder')
+  if (command === '\\placeholder' || command === '\\blank')
     return `(${atomToAsciiMath(atom.body, options)})`;
 
   const latex = Atom.serialize([atom], {

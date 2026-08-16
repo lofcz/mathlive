@@ -9,6 +9,7 @@ import { MiddleDelimAtom } from '../atoms/delim';
 
 import { argAtoms, defineFunction } from './definitions-utils';
 import { PlaceholderAtom } from '../atoms/placeholder';
+import { BlankAtom } from '../atoms/blank';
 import { serializeLatexValue } from '../core/registers-utils';
 import type { LatexValue } from '../public/core-types';
 import { Context } from '../core/context';
@@ -627,6 +628,12 @@ function serializeDeclareMathOperator(
     ? `\\DeclareMathOperator*{${name}}{${opName}}`
     : `\\DeclareMathOperator{${name}}{${opName}}`;
 }
+
+defineFunction('blank', '{:auto}', {
+  ifMode: 'math',
+  createAtom: (options) =>
+    new BlankAtom(argAtoms(options.args![0]), options),
+});
 
 defineFunction('DeclareMathOperator', '', {
   ifMode: 'math',

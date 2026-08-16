@@ -27,6 +27,7 @@ import { SurdAtom } from '../atoms/surd';
 import { TextAtom } from '../atoms/text';
 import { TooltipAtom } from '../atoms/tooltip';
 import { PromptAtom } from '../atoms/prompt';
+import { BlankAtom } from '../atoms/blank';
 import { OperatorAtom } from '../atoms/operator';
 import { NewLineAtom } from '../atoms/newline';
 import type { Argument } from 'latex-commands/types';
@@ -75,7 +76,11 @@ export function fromJson(json: AtomJson | AtomJson[]): Atom | Atom[] {
   if (type === 'overlap') result = OverlapAtom.fromJson(json);
   if (type === 'overunder') result = OverunderAtom.fromJson(json);
   if (type === 'placeholder') result = PlaceholderAtom.fromJson(json);
-  if (type === 'prompt') result = PromptAtom.fromJson(json);
+  if (type === 'prompt')
+    result =
+      json.command === '\\blank'
+        ? BlankAtom.fromJson(json)
+        : PromptAtom.fromJson(json);
   if (type === 'phantom') result = PhantomAtom.fromJson(json);
   if (type === 'sizeddelim') result = SizedDelimAtom.fromJson(json);
   if (type === 'spacing') result = SpacingAtom.fromJson(json);

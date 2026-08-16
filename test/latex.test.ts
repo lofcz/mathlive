@@ -119,6 +119,28 @@ describe('INFIX COMMANDS', () => {
   expect(error('a\\over b \\over c')).toMatch('too-many-infix-commands');
 });
 
+describe('BLANK COMMAND', () => {
+  function serialize(latex: string): string {
+    const atoms = parseLatex(latex, { parseMode: 'math' });
+    return Atom.serialize(atoms, { defaultMode: 'math' });
+  }
+
+  test('round-trips \\blank inside a fraction', () => {
+    expect(serialize('\\frac{2}{5}+\\frac{1}{5}=\\frac{\\blank{3}}{5}')).toBe(
+      '\\frac{2}{5}+\\frac{1}{5}=\\frac{\\blank{3}}{5}'
+    );
+  });
+
+  test('creates a prompt atom that serializes as \\blank', () => {
+    const atoms = parseLatex('\\blank{3}', { parseMode: 'math' });
+    const blank = atoms.find((atom) => atom.command === '\\blank');
+    expect(blank).toBeDefined();
+    expect(blank?.type).toBe('prompt');
+    expect(blank?.captureSelection).toBe(true);
+    expect(serialize('\\blank{3}')).toBe('\\blank{3}');
+  });
+});
+
 describe('VARIANT SERIALIZATION (issue #2867)', () => {
   function serialize(latex: string): string {
     const atoms = parseLatex(latex, { parseMode: 'math' });
