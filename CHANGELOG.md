@@ -1,3 +1,10 @@
+## Unreleased
+
+### Improvements
+
+- `\blank{…}` now renders as a compact dashed box (no prompt overlay), so it
+  stays readable inside fractions and scripts.
+
 ## 0.110.3 _2026-08-16_
 ### New Features
 
