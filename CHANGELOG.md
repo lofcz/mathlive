@@ -1,5 +1,4 @@
-## Unreleased
-
+## 0.110.4 _2026-08-16_
 ### Improvements
 
 - `\blank{…}` now renders as a compact dashed box (no prompt overlay), so it
