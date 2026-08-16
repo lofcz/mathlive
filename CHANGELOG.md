@@ -1,5 +1,4 @@
-## Unreleased
-
+## 0.110.3 _2026-08-16_
 ### New Features
 
 - Added `\blank{…}` as a locked, atomic fill-in-the-blank token. It serializes
