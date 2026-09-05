@@ -1,4 +1,4 @@
-## Unreleased
+## 0.110.7 _2026-09-05_
 ### New Features
 
 - Horizontal rules in tabular environments: `\hline`, `\hdashline` and
