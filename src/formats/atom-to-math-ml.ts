@@ -767,6 +767,20 @@ function atomToMathML(atom: Atom, options: { generateID?: boolean }): string {
         result += '"';
       }
 
+      // Rules between rows (`\hline` / `\hdashline`). MathML has no
+      // partial rules, so a `\cline` is rendered as a full one.
+      if (arrayAtom.rows.length > 1 && arrayAtom.hasRowRules) {
+        const rowlines: string[] = [];
+        for (row = 1; row < arrayAtom.rows.length; row++) {
+          const rules = arrayAtom.rowRules[row];
+          if (rules.length === 0) rowlines.push('none');
+          else if (rules.some((rule) => rule.style === 'solid'))
+            rowlines.push('solid');
+          else rowlines.push('dashed');
+        }
+        result += ` rowlines="${rowlines.join(' ')}"`;
+      }
+
       result += '>';
       for (row = 0; row < arrayAtom.rows.length; row++) {
         result += '<mtr>';

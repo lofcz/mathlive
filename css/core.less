@@ -490,6 +490,18 @@
     height: 0.71em;
   }
 
+  .ML__negativemediumspace {
+    display: inline-block;
+    margin-left: -@mediumspace;
+    height: 0.71em;
+  }
+
+  .ML__negativethickspace {
+    display: inline-block;
+    margin-left: -@thickspace;
+    height: 0.71em;
+  }
+
   .ML__thinspace {
     display: inline-block;
     width: @thinspace;
@@ -527,7 +539,8 @@
   }
 
   .ML__llap,
-  .ML__rlap {
+  .ML__rlap,
+  .ML__clap {
     width: 0;
     position: relative;
     display: inline-block;
@@ -547,6 +560,11 @@
 
   .ML__rlap>.ML__inner {
     left: 0;
+  }
+
+  .ML__clap>.ML__inner {
+    left: 50%;
+    transform: translateX(-50%);
   }
 
   .ML__rule {
@@ -722,6 +740,20 @@
     .ML__arraycolsep {
       display: inline-block;
     }
+  }
+
+  // Horizontal rules in arrays: `\hline`, `\hdashline`, `\cline`.
+  // The thickness (border-bottom) is set in Javascript; the box fills the
+  // width of the column (or of the whole table) it is stacked in.
+  .ML__hline,
+  .ML__hdashline {
+    display: inline-block;
+    width: 100%;
+    box-sizing: border-box;
+    border-color: currentColor;
+  }
+
+  .ML__mtable {
 
     .col-align-m>.ML__vlist-t {
       text-align: center;

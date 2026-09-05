@@ -1,7 +1,12 @@
 import type { Dimension, Environment } from '../public/core-types';
 
 import { Atom } from '../core/atom-class';
-import { ArrayAtom, ColumnFormat } from '../atoms/array';
+import {
+  ArrayAtom,
+  ArrayAtomConstructorOptions,
+  ColumnFormat,
+  RowRules,
+} from '../atoms/array';
 import { PlaceholderAtom } from '../atoms/placeholder';
 
 import {
@@ -180,10 +185,11 @@ defineTabularEnvironment(['aligned'], '', makeEnvironment);
 defineTabularEnvironment(
   'array',
   '{columns:colspec}',
-  (name, array, rowGaps, args) => {
+  (name, array, rowGaps, args, _maxMatrixCols, rowRules) => {
     return new ArrayAtom(name, array, rowGaps, {
       columns: args[0] as ColumnFormat[],
       mathstyleName: 'textstyle',
+      rowRules,
     });
   }
 );
@@ -285,31 +291,45 @@ export function makeEnvironment(
   content: (readonly Atom[])[][] = [[[]]],
   rowGaps: readonly Dimension[] = [],
   args: readonly (null | Argument)[] = [],
-  maxMatrixCols?: number
+  maxMatrixCols?: number,
+  rowRules?: RowRules
 ): ArrayAtom {
+  return new ArrayAtom(name, content, rowGaps, {
+    ...environmentOptions(name, content, args, maxMatrixCols),
+    rowRules,
+  });
+}
+
+/** The layout of each environment (columns, delimiters, spacing...) */
+function environmentOptions(
+  name: Environment,
+  content: (readonly Atom[])[][],
+  args: readonly (null | Argument)[],
+  maxMatrixCols?: number
+): ArrayAtomConstructorOptions {
   switch (name) {
     case 'math':
-      return new ArrayAtom(name, content, rowGaps, {
+      return {
         mathstyleName: 'textstyle',
         isRoot: true,
         minColumns: 1,
         maxColumns: 1,
         minRows: 1,
         maxRows: 1,
-      });
+      };
 
     case 'displaymath':
-      return new ArrayAtom(name, content, rowGaps, {
+      return {
         mathstyleName: 'textstyle',
         isRoot: true,
         minColumns: 1,
         maxColumns: 1,
         minRows: 1,
         maxRows: 1,
-      });
+      };
 
     case 'center':
-      return new ArrayAtom(name, content, rowGaps, {
+      return {
         columns: [{ align: 'c' }],
         classes: ['ML__center_environment'],
         isRoot: true,
@@ -317,11 +337,11 @@ export function makeEnvironment(
         maxColumns: 1,
         minRows: 1,
         maxRows: 1,
-      });
+      };
 
     case 'multline':
     case 'multline*':
-      return new ArrayAtom(name, content, rowGaps, {
+      return {
         columns: [{ align: 'm' }],
         leftDelim: '.',
         rightDelim: '.',
@@ -329,19 +349,19 @@ export function makeEnvironment(
         minColumns: 1,
         maxColumns: 1,
         minRows: 1,
-      });
+      };
 
     case 'split':
-      return new ArrayAtom(name, content, rowGaps, {
+      return {
         columns: [{ align: 'r' }, { align: 'l' }],
         minColumns: 2,
         minRows: 1,
         isRoot: false,
-      });
+      };
 
     case 'gather':
     case 'gather*':
-      return new ArrayAtom(name, content, rowGaps, {
+      return {
         columns: [{ gap: 0.25 }, { align: 'c' }, { gap: 0 }],
         // colSeparationType: 'gather',
         minColumns: 1,
@@ -349,27 +369,27 @@ export function makeEnvironment(
         minRows: 1,
         isRoot: true,
         classes: ['ML__gather_environment'],
-      });
+      };
 
     case 'gathered':
-      return new ArrayAtom(name, content, rowGaps, {
+      return {
         columns: [{ gap: 0.25 }, { align: 'c' }, { gap: 0 }],
         // colSeparationType: 'gather',
         minColumns: 1,
         maxColumns: 1,
         minRows: 1,
-      });
+      };
 
     case 'equation':
     case 'equation*':
     case 'subequations':
-      return new ArrayAtom(name, content, rowGaps, {
+      return {
         columns: [{ align: 'c' }],
         isRoot: true,
         minColumns: 1,
         maxColumns: 1,
         minRows: 1,
-      });
+      };
 
     case 'aligned': {
       let colCount = 0;
@@ -389,18 +409,18 @@ export function makeEnvironment(
 
       columns.push({ gap: 0 });
 
-      return new ArrayAtom(name, content, rowGaps, {
+      return {
         arraycolsep: 0,
         columns,
         // colSeparationType: 'align',
         minColumns: 2,
         minRows: 1,
         isRoot: name !== 'aligned',
-      });
+      };
     }
 
     case 'eqnarray':
-      return new ArrayAtom(name, content, rowGaps, {
+      return {
         arraycolsep: 0,
         columns: [{ gap: 0 }, { align: 'r' }, { align: 'c' }, { align: 'l' }],
         minColumns: 3,
@@ -408,11 +428,11 @@ export function makeEnvironment(
         minRows: 1,
         isRoot: true,
         classes: ['ML__eqnarray_environment'],
-      });
+      };
 
     case 'align':
     case 'align*':
-      return new ArrayAtom(name, content, rowGaps, {
+      return {
         arraycolsep: 0,
         columns: [{ gap: 0 }, { align: 'r' }, { gap: 0.25 }, { align: 'l' }],
         minColumns: 2,
@@ -420,93 +440,93 @@ export function makeEnvironment(
         minRows: 1,
         isRoot: true,
         classes: ['ML__align_environment'],
-      });
+      };
 
     case 'pmatrix':
     case 'pmatrix*':
-      return new ArrayAtom(name, content, rowGaps, {
+      return {
         mathstyleName: 'textstyle',
         leftDelim: '(',
         rightDelim: ')',
         columns: defaultColumns(args[0], maxMatrixCols),
-      });
+      };
 
     case 'bmatrix':
     case 'bmatrix*':
-      return new ArrayAtom(name, content, rowGaps, {
+      return {
         mathstyleName: 'textstyle',
         leftDelim: '[',
         rightDelim: ']',
         columns: defaultColumns(args[0], maxMatrixCols),
-      });
+      };
 
     case 'Bmatrix':
     case 'Bmatrix*':
-      return new ArrayAtom(name, content, rowGaps, {
+      return {
         mathstyleName: 'textstyle',
         leftDelim: '\\lbrace',
         rightDelim: '\\rbrace',
         columns: defaultColumns(args[0], maxMatrixCols),
-      });
+      };
 
     case 'vmatrix':
     case 'vmatrix*':
-      return new ArrayAtom(name, content, rowGaps, {
+      return {
         mathstyleName: 'textstyle',
         leftDelim: '\\vert',
         rightDelim: '\\vert',
         columns: defaultColumns(args[0], maxMatrixCols),
-      });
+      };
 
     case 'Vmatrix':
     case 'Vmatrix*':
-      return new ArrayAtom(name, content, rowGaps, {
+      return {
         mathstyleName: 'textstyle',
         leftDelim: '\\Vert',
         rightDelim: '\\Vert',
         columns: defaultColumns(args[0], maxMatrixCols),
-      });
+      };
 
     case 'matrix':
     case 'matrix*':
       // Specifying a fence, even a null fence,
       // will prevent the insertion of an initial and final gap
-      return new ArrayAtom(name, content, rowGaps, {
+      return {
         mathstyleName: 'textstyle',
         leftDelim: '.',
         rightDelim: '.',
         columns: defaultColumns(args?.[0], maxMatrixCols),
-      });
+      };
 
     case 'smallmatrix':
     case 'smallmatrix*':
-      return new ArrayAtom(name, content, rowGaps, {
+      return {
         mathstyleName: 'scriptstyle',
         columns: defaultColumns(args?.[0], maxMatrixCols),
         colSeparationType: 'small',
         arraystretch: 0.5,
-      });
+      };
 
     case 'cases':
     case 'dcases':
-      return new ArrayAtom(name, content, rowGaps, {
+      return {
         mathstyleName: name === 'dcases' ? 'displaystyle' : 'textstyle',
         arraystretch: 1.2,
         leftDelim: '\\lbrace',
         rightDelim: '.',
         columns: casesColumns(),
-      });
+      };
 
     case 'rcases':
-      return new ArrayAtom(name, content, rowGaps, {
+      return {
         arraystretch: 1.2,
         leftDelim: '.',
         rightDelim: '\\rbrace',
         columns: casesColumns(),
-      });
+      };
 
     case 'lines':
-      return new ArrayAtom(name, content, rowGaps, {
+      return {
         // arraystretch: 1.2,
         leftDelim: '.',
         rightDelim: '.',
@@ -515,13 +535,13 @@ export function makeEnvironment(
         minColumns: 1,
         maxColumns: 1,
         minRows: 1,
-      });
+      };
   }
 
   // 'math'
-  return new ArrayAtom(name, content, rowGaps, {
+  return {
     mathstyleName: 'textstyle',
-  });
+  };
 }
 
 function defaultColumns(

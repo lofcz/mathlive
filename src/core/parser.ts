@@ -5,7 +5,7 @@ import {
   getDefinition,
   getEnvironmentDefinition,
 } from '../latex-commands/definitions-utils';
-import type { ColumnFormat } from '../atoms/array';
+import type { ColumnFormat, RowRule } from '../atoms/array';
 
 import { ErrorAtom } from '../atoms/error';
 import { GroupAtom } from '../atoms/group';
@@ -868,6 +868,9 @@ export class Parser {
 
     const array: Atom[][][] = [];
     const rowGaps: Dimension[] = [];
+    // `rowRules[r]` are the `\hline`/`\hdashline`/`\cline` above row `r`;
+    // `rowRules[array.length]` those seen since the last `\\`.
+    const rowRules: RowRule[][] = [this.scanRowRules()];
     let row: Atom[][] = [];
     let done = false;
     do {
@@ -905,6 +908,7 @@ export class Parser {
           rowGaps.push(gap ?? { dimension: 0 });
           array.push(row);
           row = [];
+          rowRules.push(this.scanRowRules());
         } else {
           this.mathlist.push(
             ...this.scan((token) =>
@@ -936,8 +940,39 @@ export class Parser {
       array,
       rowGaps,
       args,
-      this.context.maxMatrixCols
+      this.context.maxMatrixCols,
+      rowRules.some((rules) => rules.length > 0) ? rowRules : undefined
     );
+  }
+
+  /**
+   * In a tabular environment, `\hline`, `\hdashline` and `\cline{i-j}` can
+   * only appear at the very start of a row (right after `\begin{...}` or a
+   * `\\`). Consume any sequence of them and return the corresponding rules.
+   *
+   * `\cline` column numbers are 1-based in LaTeX; they are returned 0-based.
+   */
+  scanRowRules(): RowRule[] {
+    if (!this.tabularMode) return [];
+    const rules: RowRule[] = [];
+    this.skipWhitespace();
+    while (!this.end()) {
+      if (this.match('\\hline')) rules.push({ style: 'solid' });
+      else if (this.match('\\hdashline')) rules.push({ style: 'dashed' });
+      else if (this.match('\\cline')) {
+        const arg = this.scanArgument('string') ?? '';
+        const m = arg.match(/^\s*(\d+)\s*(?:-\s*(\d+))?\s*$/);
+        if (!m) this.onError({ code: 'missing-argument', arg: '\\cline' });
+        else {
+          const from = Number.parseInt(m[1], 10) - 1;
+          const to = m[2] === undefined ? from : Number.parseInt(m[2], 10) - 1;
+          if (from >= 0 && to >= from) rules.push({ style: 'solid', from, to });
+          else this.onError({ code: 'missing-argument', arg: '\\cline' });
+        }
+      } else break;
+      this.skipWhitespace();
+    }
+    return rules;
   }
 
   /**
@@ -1844,8 +1879,9 @@ export class Parser {
    * Scan the macro name and its arguments and return a macro atom
    */
   scanMacro(macro: string): Atom | null {
-    const local =
-      macro.startsWith('\\') ? this.localMacros[macro.slice(1)] : undefined;
+    const local = macro.startsWith('\\')
+      ? this.localMacros[macro.slice(1)]
+      : undefined;
     const def = local ?? this.context.getMacro(macro);
     if (!def) return null;
     const initialIndex = this.index;

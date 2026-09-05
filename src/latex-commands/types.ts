@@ -1,5 +1,5 @@
 import type { Atom } from '../core/atom-class';
-import type { ColumnFormat } from '../atoms/array';
+import type { ColumnFormat, RowRules } from '../atoms/array';
 
 import type { _Mathfield } from '../editor-mathfield/mathfield-private';
 import type {
@@ -116,5 +116,7 @@ export type EnvironmentConstructor = (
   array: (readonly Atom[])[][],
   rowGaps: readonly Dimension[],
   args: readonly (null | Argument)[],
-  maxMatrixCols: number
+  maxMatrixCols: number,
+  /** `\hline` / `\hdashline` / `\cline` above each row (and below the last) */
+  rowRules?: RowRules
 ) => Atom | null;

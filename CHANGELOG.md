@@ -1,3 +1,19 @@
+## Unreleased
+### New Features
+
+- Horizontal rules in tabular environments: `\hline`, `\hdashline` and
+  `\cline{i-j}` are now parsed, rendered, serialized back to LaTeX, kept
+  through JSON round-trips and exported to MathML (`rowlines`). They work in
+  every tabular environment (`array`, `matrix` family, `cases`, `aligned`…),
+  including `\hline\hline` (separated by `\doublerulesep`) and a trailing
+  `\hline` below the last row. Previously they rendered as an unknown command
+  in red, which broke long multiplication / division layouts.
+- Row and column editing commands keep the rules attached to their row and
+  adjust `\cline` spans.
+- Added the standard commands `\negmedspace`, `\negthickspace`, `\clap`,
+  `\mathclap`, `\hbox` (alias of `\mbox`), and the no-ops `\allowbreak`,
+  `\nobreak`.
+
 ## 0.110.5 _2026-08-16_
 ### Improvements
 

@@ -741,7 +741,9 @@ defineFunction(
     'thinspace',
     'negthinspace',
     'medspace',
+    'negmedspace',
     'thickspace',
+    'negthickspace',
   ],
   '',
   {

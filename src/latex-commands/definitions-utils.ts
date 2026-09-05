@@ -195,6 +195,9 @@ export const AMSMATH_MACROS: MacroDictionary = {
   // Display / align helpers — no-ops or text so validation succeeds
   tag: { def: '', args: 1 },
   notag: '',
+  // Line-breaking hints have no effect in a mathfield
+  allowbreak: '',
+  nobreak: '',
   label: { def: '', args: 1 },
   numberthis: '',
   intertext: { def: '\\text{#1}', args: 1, captureSelection: false },
@@ -278,14 +281,22 @@ export const AMSMATH_MACROS: MacroDictionary = {
 
 /** mathtools / physics-style absolute value helpers */
 export const MATHOOLS_EXTRA_MACROS: MacroDictionary = {
-  abs: { def: '\\left\\lvert #1\\right\\rvert', args: 1, captureSelection: false },
-  norm: { def: '\\left\\lVert #1\\right\\rVert', args: 1, captureSelection: false },
-  floor: {
+  'abs': {
+    def: '\\left\\lvert #1\\right\\rvert',
+    args: 1,
+    captureSelection: false,
+  },
+  'norm': {
+    def: '\\left\\lVert #1\\right\\rVert',
+    args: 1,
+    captureSelection: false,
+  },
+  'floor': {
     def: '\\left\\lfloor #1\\right\\rfloor',
     args: 1,
     captureSelection: false,
   },
-  ceil: {
+  'ceil': {
     def: '\\left\\lceil #1\\right\\rceil',
     args: 1,
     captureSelection: false,
@@ -774,26 +785,26 @@ export function getEnvironmentDefinition(name: string): EnvironmentDefinition {
 
 // Natural language aliases for LaTeX commands
 const NATURAL_LANGUAGE_ALIASES: Record<string, string[]> = {
-  'cross': ['\\times'],
-  'multiply': ['\\times', '\\cdot'],
-  'dot': ['\\cdot'],
-  'times': ['\\times'],
-  'divide': ['\\div', '\\frac'],
-  'fraction': ['\\frac'],
-  'integral': ['\\int', '\\iint', '\\iiint', '\\iiiint', '\\idotsint'],
-  'sum': ['\\sum'],
-  'product': ['\\prod'],
-  'infinity': ['\\infty'],
-  'inf': ['\\infty'],
-  'approximately': ['\\approx'],
-  'approx': ['\\approx'],
-  'less': ['\\lt', '\\leq'],
-  'greater': ['\\gt', '\\geq'],
-  'equal': ['\\eq', '\\equiv'],
-  'not': ['\\neg', '\\lnot'],
-  'and': ['\\land', '\\wedge'],
-  'or': ['\\lor', '\\vee'],
-  'arrow': ['\\rightarrow', '\\leftarrow'],
+  cross: ['\\times'],
+  multiply: ['\\times', '\\cdot'],
+  dot: ['\\cdot'],
+  times: ['\\times'],
+  divide: ['\\div', '\\frac'],
+  fraction: ['\\frac'],
+  integral: ['\\int', '\\iint', '\\iiint', '\\iiiint', '\\idotsint'],
+  sum: ['\\sum'],
+  product: ['\\prod'],
+  infinity: ['\\infty'],
+  inf: ['\\infty'],
+  approximately: ['\\approx'],
+  approx: ['\\approx'],
+  less: ['\\lt', '\\leq'],
+  greater: ['\\gt', '\\geq'],
+  equal: ['\\eq', '\\equiv'],
+  not: ['\\neg', '\\lnot'],
+  and: ['\\land', '\\wedge'],
+  or: ['\\lor', '\\vee'],
+  arrow: ['\\rightarrow', '\\leftarrow'],
 };
 
 /**
@@ -836,24 +847,24 @@ export function suggest(mf: _Mathfield, s: string): string[] {
 
   // Greek letter groupings - show related variants
   const greekVariants: Record<string, string[]> = {
-    'alpha': ['\\alpha', '\\Alpha'],
-    'beta': ['\\beta', '\\Beta'],
-    'gamma': ['\\gamma', '\\Gamma'],
-    'delta': ['\\delta', '\\Delta'],
-    'epsilon': ['\\epsilon', '\\varepsilon', '\\Epsilon'],
-    'theta': ['\\theta', '\\vartheta', '\\Theta'],
-    'pi': ['\\pi', '\\varpi', '\\Pi'],
-    'rho': ['\\rho', '\\varrho', '\\Rho'],
-    'sigma': ['\\sigma', '\\varsigma', '\\Sigma'],
-    'phi': ['\\phi', '\\varphi', '\\Phi'],
-    'psi': ['\\psi', '\\Psi'],
-    'omega': ['\\omega', '\\Omega'],
+    alpha: ['\\alpha', '\\Alpha'],
+    beta: ['\\beta', '\\Beta'],
+    gamma: ['\\gamma', '\\Gamma'],
+    delta: ['\\delta', '\\Delta'],
+    epsilon: ['\\epsilon', '\\varepsilon', '\\Epsilon'],
+    theta: ['\\theta', '\\vartheta', '\\Theta'],
+    pi: ['\\pi', '\\varpi', '\\Pi'],
+    rho: ['\\rho', '\\varrho', '\\Rho'],
+    sigma: ['\\sigma', '\\varsigma', '\\Sigma'],
+    phi: ['\\phi', '\\varphi', '\\Phi'],
+    psi: ['\\psi', '\\Psi'],
+    omega: ['\\omega', '\\Omega'],
   };
 
   for (const [baseName, variants] of Object.entries(greekVariants)) {
     if (('\\' + baseName).startsWith(s)) {
       for (const variant of variants) {
-        if (!result.some(r => r.match === variant)) {
+        if (!result.some((r) => r.match === variant)) {
           result.push({ match: variant, frequency: 5000 });
         }
       }
@@ -862,16 +873,54 @@ export function suggest(mf: _Mathfield, s: string): string[] {
 
   // Remove duplicates
   const seen = new Set<string>();
-  const uniqueResult = result.filter(item => {
+  const uniqueResult = result.filter((item) => {
     if (seen.has(item.match)) return false;
     seen.add(item.match);
     return true;
   });
 
   const greekLetters = [
-    '\\alpha', '\\beta', '\\gamma', '\\delta', '\\epsilon', '\\zeta', '\\eta', '\\theta', '\\iota', '\\kappa', '\\lambda', '\\mu', '\\nu', '\\xi', '\\omicron', '\\pi', '\\rho', '\\sigma', '\\tau', '\\upsilon', '\\phi', '\\chi', '\\psi', '\\omega',
-    '\\Gamma', '\\Delta', '\\Theta', '\\Lambda', '\\Xi', '\\Pi', '\\Sigma', '\\Upsilon', '\\Phi', '\\Psi', '\\Omega',
-    '\\varepsilon', '\\vartheta', '\\varpi', '\\varrho', '\\varsigma', '\\varphi'
+    '\\alpha',
+    '\\beta',
+    '\\gamma',
+    '\\delta',
+    '\\epsilon',
+    '\\zeta',
+    '\\eta',
+    '\\theta',
+    '\\iota',
+    '\\kappa',
+    '\\lambda',
+    '\\mu',
+    '\\nu',
+    '\\xi',
+    '\\omicron',
+    '\\pi',
+    '\\rho',
+    '\\sigma',
+    '\\tau',
+    '\\upsilon',
+    '\\phi',
+    '\\chi',
+    '\\psi',
+    '\\omega',
+    '\\Gamma',
+    '\\Delta',
+    '\\Theta',
+    '\\Lambda',
+    '\\Xi',
+    '\\Pi',
+    '\\Sigma',
+    '\\Upsilon',
+    '\\Phi',
+    '\\Psi',
+    '\\Omega',
+    '\\varepsilon',
+    '\\vartheta',
+    '\\varpi',
+    '\\varrho',
+    '\\varsigma',
+    '\\varphi',
   ];
 
   uniqueResult.sort((a, b) => {

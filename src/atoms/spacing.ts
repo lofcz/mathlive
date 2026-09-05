@@ -56,6 +56,8 @@ export class SpacingAtom extends Atom {
           '\\thinspace': 'ML__thinspace',
           '\\!': 'ML__negativethinspace',
           '\\negthinspace': 'ML__negativethinspace',
+          '\\negmedspace': 'ML__negativemediumspace',
+          '\\negthickspace': 'ML__negativethickspace',
         }[this.command!] ?? 'ML__mediumspace';
       result = new Box(null, { classes: spacingCls });
     }

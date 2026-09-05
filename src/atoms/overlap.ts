@@ -4,12 +4,12 @@ import { Context } from '../core/context';
 import type { AtomJson, BoxType, CreateAtomOptions } from '../core/types';
 
 export class OverlapAtom extends Atom {
-  private readonly align?: 'left' | 'right';
+  private readonly align?: 'left' | 'right' | 'center';
   private readonly boxType?: BoxType;
   constructor(
     options: CreateAtomOptions & {
       body: string | readonly Atom[];
-      align?: 'left' | 'right';
+      align?: 'left' | 'right' | 'center';
       boxType?: BoxType;
     }
   ) {
@@ -45,10 +45,16 @@ export class OverlapAtom extends Atom {
     const inner = Atom.createBox(context, this.body, { classes: 'ML__inner' }); // @revisit
     if (!inner) return null;
     if (this.caret) inner.caret = this.caret;
+    const classes =
+      this.align === 'right'
+        ? 'ML__rlap'
+        : this.align === 'center'
+          ? 'ML__clap'
+          : 'ML__llap';
     return this.bind(
       context,
       new Box([inner, new Box(null, { classes: 'ML__fix' })], {
-        classes: this.align === 'right' ? 'ML__rlap' : 'ML__llap',
+        classes,
         type: this.boxType,
       })
     );

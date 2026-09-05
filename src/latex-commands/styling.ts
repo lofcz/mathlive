@@ -52,12 +52,12 @@ defineFunction('mathtip', '{:auto}{:math}', {
     options.skipStyles
       ? atom.bodyToLatex(options)
       : `\\mathtip{${atom.bodyToLatex(options)}}{${Atom.serialize(
-        [atom.tooltip],
-        {
-          ...options,
-          defaultMode: 'math',
-        }
-      )}}`,
+          [atom.tooltip],
+          {
+            ...options,
+            defaultMode: 'math',
+          }
+        )}}`,
 });
 
 defineFunction('texttip', '{:auto}{:text}', {
@@ -74,12 +74,12 @@ defineFunction('texttip', '{:auto}{:text}', {
     options.skipStyles
       ? atom.bodyToLatex(options)
       : `\\texttip{${atom.bodyToLatex(options)}}{${Atom.serialize(
-        [atom.tooltip],
-        {
-          ...options,
-          defaultMode: 'text',
-        }
-      )}}`,
+          [atom.tooltip],
+          {
+            ...options,
+            defaultMode: 'text',
+          }
+        )}}`,
 });
 
 defineFunction('error', '{:math}', {
@@ -166,11 +166,11 @@ defineFunction(
       options.skipStyles
         ? atom.bodyToLatex({ ...options, defaultMode: 'text' })
         : latexCommand(
-          atom.command,
-          serializeLatexValue(atom.framecolor) ?? '',
-          serializeLatexValue(atom.backgroundcolor) ?? '',
-          atom.bodyToLatex({ ...options, defaultMode: 'text' })
-        ),
+            atom.command,
+            serializeLatexValue(atom.framecolor) ?? '',
+            serializeLatexValue(atom.backgroundcolor) ?? '',
+            atom.bodyToLatex({ ...options, defaultMode: 'text' })
+          ),
   }
 );
 
@@ -569,7 +569,7 @@ defineFunction('mathscr', '{:math*}', {
  * An \mbox within math mode does not use the current math font; rather it uses
  * the typeface of the surrounding running text.
  */
-defineFunction('mbox', '{:text}', {
+defineFunction(['mbox', 'hbox'], '{:text}', {
   ifMode: 'math',
   createAtom: (options) =>
     new Atom({
@@ -580,7 +580,7 @@ defineFunction('mbox', '{:text}', {
     }),
   serialize: (atom: GroupAtom, options) =>
     latexCommand(
-      '\\mbox',
+      atom.command ?? '\\mbox',
       atom.bodyToLatex({ ...options, defaultMode: 'text' })
     ),
 });
@@ -1075,7 +1075,8 @@ defineFunction('rule', '[raise:value]{width:value}{thickness:value}', {
   serialize: (
     atom: Atom<[LatexValue | null, LatexValue | null, LatexValue | null]>
   ) =>
-    `\\rule${atom.args[0] ? `[${serializeLatexValue(atom.args![0])}]` : ''
+    `\\rule${
+      atom.args[0] ? `[${serializeLatexValue(atom.args![0])}]` : ''
     }{${serializeLatexValue(atom.args![1])}}{${serializeLatexValue(
       atom.args![2]
     )}}`,
@@ -1354,6 +1355,24 @@ defineFunction('mathllap', '{:math}', {
       ...options,
       body: argAtoms(options.args![0]),
       align: 'left',
+    }),
+});
+
+defineFunction('clap', '{:auto}', {
+  createAtom: (options): Atom =>
+    new OverlapAtom({
+      ...options,
+      body: argAtoms(options.args![0]),
+      align: 'center',
+    }),
+});
+
+defineFunction('mathclap', '{:math}', {
+  createAtom: (options): Atom =>
+    new OverlapAtom({
+      ...options,
+      body: argAtoms(options.args![0]),
+      align: 'center',
     }),
 });
 

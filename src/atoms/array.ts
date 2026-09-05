@@ -42,6 +42,25 @@ export type ColSeparationType =
   // | 'CD'
   | undefined;
 
+/**
+ * A horizontal rule drawn between two rows, above the first row or below
+ * the last one: `\hline`, `\hdashline` or `\cline{i-j}`.
+ *
+ * `from` / `to` are 0-based, inclusive content-column indexes. When they are
+ * absent the rule spans the full width of the array.
+ */
+export type RowRule = {
+  style: 'solid' | 'dashed';
+  from?: number;
+  to?: number;
+};
+
+/**
+ * Rules indexed by the row they sit *above*: `rowRules[r]` are drawn above
+ * row `r`, and `rowRules[rowCount]` are drawn below the last row.
+ */
+export type RowRules = readonly (readonly RowRule[])[];
+
 export type ArrayAtomConstructorOptions = {
   isRoot?: boolean;
 
@@ -56,6 +75,7 @@ export type ArrayAtomConstructorOptions = {
   arraycolsep?: number;
 
   columns?: ColumnFormat[];
+  rowRules?: RowRules;
   minColumns?: number;
   maxColumns?: number;
   minRows?: number;
@@ -90,8 +110,9 @@ function normalizeCells(
     minColumns: number;
     minRows: number;
     maxRows: number;
+    rowRules?: RowRules;
   }
-): (readonly Atom[])[][] {
+): { rows: (readonly Atom[])[][]; rowRules: RowRule[][] } {
   //
   // 1/
   // - Fold the array so that there are no more columns of content than
@@ -109,10 +130,15 @@ function normalizeCells(
   // Actual number of columns (at most `maxColCount`)
   let colCount = 0;
   const rows: (readonly Atom[])[][] = [];
+  // Horizontal rules, kept aligned with `rows`: when a source row is folded
+  // into several rows, the rules above it stay above the first fold.
+  const rowRules: RowRule[][] = [];
 
-  for (const row of cells) {
+  for (let sourceRow = 0; sourceRow < cells.length; sourceRow++) {
+    const row = cells[sourceRow];
     colCount = Math.max(colCount, Math.min(row.length, maxColCount));
     let colIndex = 0;
+    let firstFold = true;
     while (colIndex < row.length) {
       const newRow: (readonly Atom[])[] = [];
       const lastCol = Math.min(row.length, colIndex + maxColCount);
@@ -127,20 +153,33 @@ function normalizeCells(
       }
 
       rows.push(newRow);
+      rowRules.push(
+        firstFold ? [...(options.rowRules?.[sourceRow] ?? [])] : []
+      );
+      firstFold = false;
     }
   }
+  // Rules below the last row
+  rowRules.push([...(options.rowRules?.[cells.length] ?? [])]);
 
   //
   // 2/ If the last row is empty, ignore it (TeX behavior)
   // (unless there's only one row)
+  //
+  // This is what happens with a trailing `\\ \hline` before `\end{array}`:
+  // the rules that were above the (dropped) empty row are now below the
+  // last row.
   //
   if (
     !atom.isMultiline &&
     rows.length > 0 &&
     rows[rows.length - 1].length === 1 &&
     isEmptyCell(rows[rows.length - 1][0])
-  )
+  ) {
     rows.pop();
+    const below = rowRules.pop()!;
+    rowRules[rowRules.length - 1].push(...below);
+  }
 
   //
   // 3/ Fill out any missing cells
@@ -181,7 +220,7 @@ function normalizeCells(
 
   atom.isDirty = true;
 
-  return result;
+  return { rows: result, rowRules };
 }
 
 function isEmptyMultilineCell(cell: readonly Atom[]): boolean {
@@ -253,6 +292,13 @@ export class ArrayAtom extends Atom {
   // The array is a 2D array of cells, each cell being an array of atoms
   private _rows: (undefined | readonly Atom[])[][];
 
+  /**
+   * Horizontal rules (`\hline`, `\hdashline`, `\cline`). Always has
+   * `rowCount + 1` entries: `rowRules[r]` is drawn above row `r`, the last
+   * entry below the last row.
+   */
+  rowRules: RowRule[][];
+
   rowGaps: readonly Dimension[];
   arraystretch?: number;
   arraycolsep?: number;
@@ -311,12 +357,15 @@ export class ArrayAtom extends Atom {
     this.minRows = options.minRows ?? 1;
     this.maxRows = options.maxRows ?? Infinity;
 
-    this._rows = normalizeCells(this, array, {
+    const normalized = normalizeCells(this, array, {
       columns: this.colFormat,
       minColumns: this.minColumns,
       minRows: this.minRows,
       maxRows: this.maxRows,
+      rowRules: options.rowRules,
     });
+    this._rows = normalized.rows;
+    this.rowRules = normalized.rowRules;
 
     this.rowGaps = rowGaps;
 
@@ -369,8 +418,14 @@ export class ArrayAtom extends Atom {
     result.maxRows = this.maxRows;
     if (this.mathstyleName) result.mathstyleName = this.mathstyleName;
     if (this.classes.length > 0) result.classes = this.classes;
+    if (this.hasRowRules) result.rowRules = this.rowRules;
 
     return result;
+  }
+
+  /** True if any `\hline`, `\hdashline` or `\cline` is present */
+  get hasRowRules(): boolean {
+    return this.rowRules.some((rules) => rules.length > 0);
   }
 
   branch(cell: Branch): readonly Atom[] | undefined {
@@ -471,6 +526,20 @@ export class ArrayAtom extends Atom {
     const body: ArrayRow[] = [];
     let nc = 0;
     const nr = this._rows.length;
+
+    // Horizontal rules (`\hline`, `\hdashline`, `\cline`) and the vertical
+    // position (from the top of the array) of their bottom edge. Consecutive
+    // rules (`\hline\hline`) are separated by \doublerulesep.
+    const placedRules: PlacedRule[] = [];
+    const placeRules = (rules: readonly RowRule[] | undefined): void => {
+      if (!rules) return;
+      for (let i = 0; i < rules.length; i++) {
+        if (i > 0) totalHeight += doubleRuleSep;
+        placedRules.push({ rule: rules[i], y: totalHeight });
+      }
+    };
+    placeRules(this.rowRules[0]);
+
     for (let r = 0; r < nr; ++r) {
       const inrow = this._rows[r];
       nc = Math.max(nc, inrow.length);
@@ -524,6 +593,9 @@ export class ArrayAtom extends Atom {
       outrow.pos = totalHeight;
       totalHeight += depth + gap; // \@yargarraycr
       body.push(outrow);
+
+      // Rules below this row (i.e. above the next one)
+      placeRules(this.rowRules[r + 1]);
     }
 
     // For inline array environments, align the first row's baseline rather than
@@ -532,6 +604,23 @@ export class ArrayAtom extends Atom {
       this.environmentName === 'array' && !this.isMultiline
         ? body[0].height // Align to first row's baseline
         : totalHeight / 2 + AXIS_HEIGHT; // Center around math axis
+
+    // Full-width rules are overlaid on the whole table; partial rules
+    // (`\cline`) are stacked inside each column they span (and the gaps
+    // in between), since the width of the columns is only known to the
+    // browser.
+    const fullRules = placedRules.filter((x) => x.rule.from === undefined);
+    const partialRules = placedRules.filter((x) => x.rule.from !== undefined);
+    const rulesSpanning = (from: number, to: number): VBoxElementAndShift[] =>
+      partialRules
+        .filter(
+          ({ rule }) => rule.from! <= from && (rule.to ?? rule.from!) >= to
+        )
+        .map(({ rule, y }) => ({
+          box: makeRuleBox(rule.style, arrayRuleWidth),
+          shift: y - offset,
+        }));
+
     const contentCols: Box[] = [];
     for (let colIndex = 0; colIndex < nc; colIndex++) {
       const stack: VBoxElementAndShift[] = [];
@@ -545,9 +634,25 @@ export class ArrayAtom extends Atom {
         }
       }
 
+      stack.push(...rulesSpanning(colIndex, colIndex));
+
       if (stack.length > 0)
         contentCols.push(new VBox({ individualShift: stack }));
     }
+
+    // A gap between two content columns must carry the `\cline`s that span
+    // both, otherwise the rule would be interrupted.
+    const makeGapAfter = (width: number, contentCol: number): Box => {
+      if (contentCol < 0 || contentCol + 1 >= contentCols.length)
+        return makeColGap(width);
+      const rules = rulesSpanning(contentCol, contentCol + 1);
+      if (rules.length === 0) return makeColGap(width);
+      // A vlist (inline-table) of the given width, so the rules inside
+      // (`width: 100%`) fill the gap.
+      const gap = new VBox({ individualShift: rules });
+      gap.width = width;
+      return gap;
+    };
 
     // Iterate over each column description.
     // Each `colDesc` will indicate whether to insert a gap, a rule or
@@ -568,7 +673,7 @@ export class ArrayAtom extends Atom {
         if (previousColContent) {
           // If no gap was provided, insert a default gap between
           // consecutive columns of content
-          cols.push(makeColGap(2 * arraycolsep));
+          cols.push(makeGapAfter(2 * arraycolsep, currentContentCol - 1));
         } else if (previousColRule || firstColumn) {
           // If the previous column was a rule or this is the first column
           // add a smaller gap
@@ -591,7 +696,12 @@ export class ArrayAtom extends Atom {
         if (typeof colDesc.gap === 'number') {
           // It's a number, indicating how much space, in em,
           // to leave in between columns
-          cols.push(makeColGap(colDesc.gap));
+          cols.push(
+            makeGapAfter(
+              colDesc.gap,
+              previousColContent ? currentContentCol - 1 : -1
+            )
+          );
         } else {
           // It's a list of atoms.
           // Create a column made up of the mathlist
@@ -643,7 +753,7 @@ export class ArrayAtom extends Atom {
       cols.push(makeColGap(arraycolsep));
     }
 
-    const inner = new Box(cols, {
+    let inner = new Box(cols, {
       classes: ['ML__mtable', ...this.classes].join(' '),
     });
 
@@ -652,6 +762,20 @@ export class ArrayAtom extends Atom {
     if (this.environmentName === 'array' && !this.isMultiline) {
       inner.height = body[0].height;
       inner.depth = totalHeight - body[0].height;
+    }
+
+    if (fullRules.length > 0) {
+      // Overlay the full-width rules on the table. Each rule is a
+      // `width: 100%` box whose bottom edge sits at the row boundary.
+      inner = new VBox({
+        individualShift: [
+          { box: inner, shift: 0 },
+          ...fullRules.map(({ rule, y }) => ({
+            box: makeRuleBox(rule.style, arrayRuleWidth),
+            shift: y - offset,
+          })),
+        ],
+      });
     }
 
     if (
@@ -732,19 +856,26 @@ export class ArrayAtom extends Atom {
       result.push('}');
     }
 
+    result.push(...serializeRowRules(this.rowRules[0]));
+
     for (let row = 0; row < this._rows.length; row++) {
       for (let col = 0; col < this._rows[row].length; col++) {
         if (col > 0) result.push(' & ');
         result.push(Atom.serialize(this._rows[row][col], options));
       }
 
-      // Adds a separator between rows (but not after the last row)
-      if (row < this._rows.length - 1) {
+      const rulesBelow = this.rowRules[row + 1] ?? [];
+
+      // Adds a separator between rows (but not after the last row, unless
+      // there are rules below it: `\hline` must follow a `\\`)
+      if (row < this._rows.length - 1 || rulesBelow.length > 0) {
         const gap = this.rowGaps[row];
         if (gap?.dimension)
           result.push(`\\\\[${gap.dimension} ${gap.unit ?? 'pt'}] `);
         else result.push('\\\\ ');
       }
+
+      result.push(...serializeRowRules(rulesBelow));
     }
 
     // Only close \displaylines{} if there are multiple rows
@@ -800,6 +931,8 @@ export class ArrayAtom extends Atom {
         makeEmptyCell(this, !this.isMultiline)
       )
     );
+    // The rules above `row` stay attached to it; the new row has none.
+    this.rowRules.splice(row, 0, []);
     adjustBranches(this);
     this.isDirty = true;
   }
@@ -814,6 +947,7 @@ export class ArrayAtom extends Atom {
         makeEmptyCell(this, !this.isMultiline)
       )
     );
+    this.rowRules.splice(row + 1, 0, []);
 
     adjustBranches(this);
     this.isDirty = true;
@@ -823,6 +957,10 @@ export class ArrayAtom extends Atom {
     console.assert(
       this.type === 'array' && Array.isArray(this._rows) && this.rowCount > row
     );
+
+    // Drop the rules above the removed row; the ones below it now sit
+    // above the row that took its place (or below the new last row).
+    this.rowRules.splice(row, 1);
 
     const deleted = this._rows.splice(row, 1);
     for (const column of deleted) {
@@ -843,6 +981,7 @@ export class ArrayAtom extends Atom {
   addColumnBefore(col: number): void {
     console.assert(this.type === 'array' && Array.isArray(this._rows));
     for (const row of this._rows) row.splice(col, 0, makeEmptyCell(this));
+    shiftRuleColumns(this.rowRules, col, +1);
 
     adjustBranches(this);
     this.isDirty = true;
@@ -851,6 +990,7 @@ export class ArrayAtom extends Atom {
   addColumnAfter(col: number): void {
     console.assert(this.type === 'array' && Array.isArray(this._rows));
     for (const row of this._rows) row.splice(col + 1, 0, makeEmptyCell(this));
+    shiftRuleColumns(this.rowRules, col + 1, +1);
 
     adjustBranches(this);
     this.isDirty = true;
@@ -875,6 +1015,7 @@ export class ArrayAtom extends Atom {
         }
       }
     }
+    shiftRuleColumns(this.rowRules, col, -1);
     adjustBranches(this);
     this.isDirty = true;
   }
@@ -938,6 +1079,67 @@ function makeColGap(width: number): Box {
   const result = new Box(null, { classes: 'ML__arraycolsep' });
   result.width = width;
   return result;
+}
+
+type PlacedRule = { rule: RowRule; y: number };
+
+/**
+ * Create a horizontal rule box. It fills the width of its container
+ * (see `.ML__hline` in core.less) and its bottom edge is on its baseline,
+ * so it can be placed with a `VBox` shift like any other element.
+ */
+function makeRuleBox(style: RowRule['style'], thickness: number): Box {
+  const rule = new Box(null, {
+    classes: style === 'dashed' ? 'ML__hdashline' : 'ML__hline',
+  });
+  rule.height = thickness;
+  rule.depth = 0;
+  rule.maxFontSize = thickness;
+  rule.setStyle('border-bottom', `${thickness}em ${style} currentColor`);
+  return rule;
+}
+
+function serializeRowRules(rules: readonly RowRule[] | undefined): string[] {
+  if (!rules || rules.length === 0) return [];
+  return rules.map((rule) => {
+    if (rule.from === undefined)
+      return rule.style === 'dashed' ? '\\hdashline ' : '\\hline ';
+    const to = rule.to ?? rule.from;
+    return `\\cline{${rule.from + 1}-${to + 1}} `;
+  });
+}
+
+/**
+ * Keep `\cline` column ranges in sync when a column is inserted (`delta`
+ * = +1) at `col` or removed (`delta` = -1) from `col`.
+ */
+function shiftRuleColumns(
+  rowRules: RowRule[][],
+  col: number,
+  delta: 1 | -1
+): void {
+  for (let i = 0; i < rowRules.length; i++) {
+    const next: RowRule[] = [];
+    for (const rule of rowRules[i]) {
+      if (rule.from === undefined) {
+        next.push(rule);
+        continue;
+      }
+      let from = rule.from;
+      let to = rule.to ?? rule.from;
+      if (delta > 0) {
+        if (from >= col) from += 1;
+        if (to >= col) to += 1;
+      } else {
+        // Removing a column that is the sole span of the rule drops it
+        if (from === col && to === col) continue;
+        if (from > col) from -= 1;
+        if (to >= col) to -= 1;
+      }
+      next.push({ ...rule, from, to });
+    }
+    rowRules[i] = next;
+  }
 }
 
 /**
