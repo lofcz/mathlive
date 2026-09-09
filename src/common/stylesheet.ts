@@ -27,6 +27,28 @@ type StylesheetId =
 
 let gStylesheets: Partial<Record<StylesheetId, CSSStyleSheet>>;
 
+/**
+ * When set (e.g. `.fika-embed-root`), runtime-injected sheets are wrapped in
+ * `@scope` so they cannot restyle the host page. Shadow `:host` rules stay
+ * unscoped — they only apply inside the mathfield.
+ */
+let gStylesheetScope: string | null = null;
+
+export function getStylesheetScope(): string | null {
+  return gStylesheetScope;
+}
+
+export function setStylesheetScope(scope: string | null): void {
+  if (scope === gStylesheetScope) return;
+  gStylesheetScope = scope;
+  gStylesheets = {};
+}
+
+function scopedContent(id: StylesheetId, content: string): string {
+  if (!gStylesheetScope || id === 'mathfield-element') return content;
+  return `@scope (${gStylesheetScope}) {\n${content}\n}`;
+}
+
 export function getStylesheetContent(id: StylesheetId): string {
   let content = '';
 
@@ -85,7 +107,7 @@ export function getStylesheet(id: StylesheetId): CSSStyleSheet {
 
   gStylesheets[id] = new CSSStyleSheet();
 
-  gStylesheets[id]!.replaceSync(getStylesheetContent(id));
+  gStylesheets[id]!.replaceSync(scopedContent(id, getStylesheetContent(id)));
 
   return gStylesheets[id]!;
 }
@@ -99,7 +121,9 @@ export function injectStylesheet(id: StylesheetId): void {
       const styleNode = window.document.createElement('style');
       styleNode.id = `mathlive-style-${id}`;
       styleNode.append(
-        window.document.createTextNode(getStylesheetContent(id))
+        window.document.createTextNode(
+          scopedContent(id, getStylesheetContent(id))
+        )
       );
       window.document.head.appendChild(styleNode);
       return;

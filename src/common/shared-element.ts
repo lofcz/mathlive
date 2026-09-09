@@ -1,3 +1,19 @@
+import { getStylesheetScope } from './stylesheet';
+
+/**
+ * Parent for shared overlay panels (popovers, keystroke caption). With a
+ * stylesheet scope set, the panels must live inside a scope root or the
+ * scoped rules never reach them.
+ */
+function sharedElementParent(): HTMLElement {
+  const scope = getStylesheetScope();
+  if (scope) {
+    const root = document.querySelector<HTMLElement>(scope);
+    if (root) return root;
+  }
+  return document.body;
+}
+
 export function getSharedElement(id: string): HTMLElement {
   let result = document.getElementById(id);
   if (result) {
@@ -9,7 +25,7 @@ export function getSharedElement(id: string): HTMLElement {
     result.setAttribute('aria-hidden', 'true');
     result.dataset.refcount = '1';
     result.id = id;
-    document.body.append(result);
+    sharedElementParent().append(result);
   }
 
   return result;

@@ -46,7 +46,12 @@ import { defaultReadAloudHook } from '../editor/speech-read-aloud';
 import type { ComputeEngine } from '@cortex-js/compute-engine';
 
 import { l10n } from '../core/l10n';
-import { getStylesheet, getStylesheetContent } from '../common/stylesheet';
+import {
+  getStylesheet,
+  getStylesheetContent,
+  getStylesheetScope,
+  setStylesheetScope,
+} from '../common/stylesheet';
 import { Scrim } from '../ui/utils/scrim';
 import { isOffset, isRange, isSelection } from 'editor-model/selection-utils';
 import { KeyboardModifiers } from './ui-events-types';
@@ -628,6 +633,34 @@ export class MathfieldElement extends HTMLElement implements Mathfield {
 
   /** @internal */
   private static _fontsDirectory: string | null = './fonts/';
+
+  /**
+   * CSS selector that confines runtime-injected MathLive styles (core,
+   * virtual keyboard, popovers) to a host subtree. `null` (default) injects
+   * unscoped document styles, matching upstream.
+   *
+   * Set this before creating a mathfield when embedding on a page that
+   * already has its own typography:
+   *
+   * ```javascript
+   * MathfieldElement.stylesheetScope = '.fika-embed-root';
+   * ```
+   */
+  static get stylesheetScope(): string | null {
+    return getStylesheetScope();
+  }
+  static set stylesheetScope(value: string | null) {
+    setStylesheetScope(value);
+  }
+
+  /** @internal */
+  get stylesheetScope(): never {
+    throw new Error('Use MathfieldElement.stylesheetScope instead');
+  }
+  /** @internal */
+  set stylesheetScope(_value: unknown) {
+    throw new Error('Use MathfieldElement.stylesheetScope instead');
+  }
 
   /**
    * A URL fragment pointing to the directory containing the optional
