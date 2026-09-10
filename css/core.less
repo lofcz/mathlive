@@ -329,6 +329,9 @@
 
   &:after {
     border-bottom-width: 1px;
+    // Host resets (Tailwind preflight: `::after { border-style: solid }`)
+    // would otherwise paint this spacer as a second rule above the radical.
+    border-bottom-style: none;
     content: ' ';
     display: block;
     margin-top: -0.1em;
