@@ -1644,7 +1644,7 @@ Consider using this option if you are displaying untrusted content. Read more ab
 ##### MathfieldElement.version
 
 ```ts
-static version: string = '0.110.0';
+static version: string = '0.110.9';
 ```
 
 </MemberCard>
@@ -1790,6 +1790,30 @@ The property is either:
 - `null` to turn off the sound
 
 If the `soundsDirectory` is `null`, no sound will be played.
+
+</MemberCard>
+
+<MemberCard>
+
+##### MathfieldElement.stylesheetScope
+
+```ts
+get static stylesheetScope(): string
+set static stylesheetScope(value: string): void
+```
+
+CSS selector that confines runtime-injected MathLive styles (core,
+virtual keyboard, popovers) to a host subtree. `null` (default) injects
+unscoped document styles, matching upstream. Sheets adopted by the
+mathfield's own shadow root are never scoped — the shadow boundary
+already isolates them, and the scope root is not visible from inside.
+
+Set this before creating a mathfield when embedding on a page that
+already has its own typography:
+
+```javascript
+MathfieldElement.stylesheetScope = '.fika-embed-root';
+```
 
 </MemberCard>
 
@@ -6899,7 +6923,7 @@ const version: {
 };
 ```
 
-Current version: `0.110.0`
+Current version: `0.110.9`
 
 The version string of the SDK using the [semver](https://semver.org/) convention:
 

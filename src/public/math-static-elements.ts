@@ -16,7 +16,7 @@ import {
 } from './mathlive-ssr';
 import type { LayoutOptions } from './options';
 import type { Expression } from '@cortex-js/compute-engine';
-import { getStylesheet, getStylesheetContent } from '../common/stylesheet';
+import { getShadowStylesheet, getStylesheetContent } from '../common/stylesheet';
 import { loadFonts } from '../core/fonts';
 
 /**
@@ -59,7 +59,7 @@ abstract class MathStaticElement extends HTMLElement {
 
     // Add stylesheets
     if ('adoptedStyleSheets' in this._shadowRoot)
-      (this._shadowRoot as any).adoptedStyleSheets = [getStylesheet('core')];
+      (this._shadowRoot as any).adoptedStyleSheets = [getShadowStylesheet('core')];
     else {
       const styleElement = document.createElement('style');
       styleElement.textContent = getStylesheetContent('core');

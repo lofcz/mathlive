@@ -25,12 +25,19 @@ type StylesheetId =
   | 'keystroke-caption'
   | 'virtual-keyboard';
 
+/** Document-level sheets, wrapped in `@scope` when a scope is set. */
 let gStylesheets: Partial<Record<StylesheetId, CSSStyleSheet>>;
+/**
+ * Sheets adopted by shadow roots. Never scoped: a shadow tree cannot see the
+ * scope root outside its boundary, so a scoped sheet would match nothing and
+ * the mathfield would render unstyled. The shadow boundary already keeps
+ * these rules away from the host page.
+ */
+let gShadowStylesheets: Partial<Record<StylesheetId, CSSStyleSheet>>;
 
 /**
- * When set (e.g. `.fika-embed-root`), runtime-injected sheets are wrapped in
- * `@scope` so they cannot restyle the host page. Shadow `:host` rules stay
- * unscoped — they only apply inside the mathfield.
+ * When set (e.g. `.fika-embed-root`), runtime-injected document sheets are
+ * wrapped in `@scope` so they cannot restyle the host page.
  */
 let gStylesheetScope: string | null = null;
 
@@ -100,6 +107,7 @@ export function getStylesheetContent(id: StylesheetId): string {
   return content;
 }
 
+/** Sheet for `document.adoptedStyleSheets` (scoped when a scope is set). */
 export function getStylesheet(id: StylesheetId): CSSStyleSheet {
   if (!gStylesheets) gStylesheets = {};
 
@@ -110,6 +118,19 @@ export function getStylesheet(id: StylesheetId): CSSStyleSheet {
   gStylesheets[id]!.replaceSync(scopedContent(id, getStylesheetContent(id)));
 
   return gStylesheets[id]!;
+}
+
+/** Sheet for a shadow root's `adoptedStyleSheets` (always unscoped). */
+export function getShadowStylesheet(id: StylesheetId): CSSStyleSheet {
+  if (!gShadowStylesheets) gShadowStylesheets = {};
+
+  if (gShadowStylesheets[id]) return gShadowStylesheets[id]!;
+
+  gShadowStylesheets[id] = new CSSStyleSheet();
+
+  gShadowStylesheets[id]!.replaceSync(getStylesheetContent(id));
+
+  return gShadowStylesheets[id]!;
 }
 
 let gInjectedStylesheets: Partial<Record<StylesheetId, number>>;

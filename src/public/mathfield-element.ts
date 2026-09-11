@@ -47,7 +47,7 @@ import type { ComputeEngine } from '@cortex-js/compute-engine';
 
 import { l10n } from '../core/l10n';
 import {
-  getStylesheet,
+  getShadowStylesheet,
   getStylesheetContent,
   getStylesheetScope,
   setStylesheetScope,
@@ -637,7 +637,9 @@ export class MathfieldElement extends HTMLElement implements Mathfield {
   /**
    * CSS selector that confines runtime-injected MathLive styles (core,
    * virtual keyboard, popovers) to a host subtree. `null` (default) injects
-   * unscoped document styles, matching upstream.
+   * unscoped document styles, matching upstream. Sheets adopted by the
+   * mathfield's own shadow root are never scoped — the shadow boundary
+   * already isolates them, and the scope root is not visible from inside.
    *
    * Set this before creating a mathfield when embedding on a page that
    * already has its own typography:
@@ -1366,11 +1368,11 @@ export class MathfieldElement extends HTMLElement implements Mathfield {
     if (this.shadowRoot && 'adoptedStyleSheets' in this.shadowRoot) {
       // @ts-ignore
       this.shadowRoot!.adoptedStyleSheets = [
-        getStylesheet('core'),
-        getStylesheet('mathfield'),
-        getStylesheet('mathfield-element'),
-        getStylesheet('ui'),
-        getStylesheet('menu'),
+        getShadowStylesheet('core'),
+        getShadowStylesheet('mathfield'),
+        getShadowStylesheet('mathfield-element'),
+        getShadowStylesheet('ui'),
+        getShadowStylesheet('menu'),
       ];
 
       // @ts-ignore
