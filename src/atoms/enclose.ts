@@ -389,14 +389,18 @@ export class EncloseAtom extends Atom {
       if (this.shadow === 'auto') {
         svgStyle +=
           'filter: drop-shadow(0 0 .5px rgba(255, 255, 255, .7)) drop-shadow(1px 1px 2px #333)';
-      }
-      if (this.shadow !== 'none')
-        svgStyle += `filter: drop-shadow(${escapeSvgAttr(this.shadow ?? '')})`;
+      } else if (this.shadow !== 'none')
+        svgStyle = `filter: drop-shadow(${this.shadow ?? ''})`;
 
-      svgStyle += ` stroke-width="${escapeSvgAttr(this.strokeWidth ?? '')}" stroke="${escapeSvgAttr(this.strokeColor ?? '')}"`;
-      svgStyle += ' stroke-linecap="round"';
+      // Keep CSS and attributes separate. Box serializes each value in its
+      // quoted HTML context; LaTeX styles must never become attribute markup.
+      notation.svgAttributes = {
+        'stroke-width': this.strokeWidth ?? '',
+        'stroke': this.strokeColor ?? '',
+        'stroke-linecap': 'round',
+      };
       if (this.svgStrokeStyle)
-        svgStyle += ` stroke-dasharray="${escapeSvgAttr(this.svgStrokeStyle)}"`;
+        notation.svgAttributes['stroke-dasharray'] = this.svgStrokeStyle;
       notation.svgStyle = svgStyle;
       notation.svgOverlay = svg;
     }

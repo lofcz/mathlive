@@ -133,6 +133,7 @@ export class Box implements BoxInterface {
   svgBody?: string;
   svgOverlay?: string;
   svgStyle?: string;
+  svgAttributes?: Record<string, string>;
 
   id?: string;
 
@@ -392,9 +393,15 @@ export class Box implements BoxInterface {
       } else svgMarkup += 'top:0;left:0;width:100%;';
 
       svgMarkup += 'z-index:2;';
+      if (this.svgStyle)
+        svgMarkup += escapeText(this.svgStyle).replace(/"/g, '&quot;');
       svgMarkup += '"';
 
-      if (this.svgStyle) svgMarkup += this.svgStyle;
+      if (this.svgAttributes) {
+        for (const [name, value] of Object.entries(this.svgAttributes)) {
+          svgMarkup += ` ${sanitizeAttributeName(name)}="${escapeText(value).replace(/"/g, '&quot;')}"`;
+        }
+      }
 
       svgMarkup += ` viewBox="0 0 ${Math.floor(100 * this.width) / 100} ${
         Math.floor(100 * (this.height + this.depth)) / 100
@@ -768,10 +775,7 @@ function horizontalLayout(box: Box, fontName: FontName): void {
  * characters of `\text{}`, `\mbox{}`, etc. from being interpreted as markup.
  */
 function escapeText(s: string): string {
-  return s
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;');
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
 function sanitizeAttributeName(attribute: string): string {
