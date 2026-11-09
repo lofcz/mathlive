@@ -1,5 +1,6 @@
 import { Atom } from '../core/atom-class';
 import { mathVariantToUnicode } from '../core/unicode';
+import { serializeLatexValue } from '../core/registers-utils';
 import { MacroAtom } from '../atoms/macro';
 import { LeftRightAtom } from '../atoms/leftright';
 import { ArrayAtom } from 'atoms/array';
@@ -822,7 +823,10 @@ function atomToMathML(atom: Atom, options: { generateID?: boolean }): string {
       }
 
       if (genfracAtom.hasBarLine) {
-        result += '<mfrac>';
+        const thickness = genfracAtom.barThickness;
+        if (thickness && 'dimension' in thickness)
+          result += `<mfrac linethickness="${serializeLatexValue(thickness)}">`;
+        else result += '<mfrac>';
         result += toMathML(atom.above, options) || '<mi>&nbsp;</mi>';
         result += toMathML(atom.below, options) || '<mi>&nbsp;</mi>';
         result += '</mfrac>';
@@ -1056,8 +1060,10 @@ function atomToMathML(atom: Atom, options: { generateID?: boolean }): string {
     case 'box':
       const boxAtom = atom as BoxAtom;
       result = '<menclose notation="box"';
-      if (boxAtom.backgroundcolor)
-        result += ' mathbackground="' + boxAtom.backgroundcolor + '"';
+      if (boxAtom.backgroundcolor && 'string' in boxAtom.backgroundcolor) {
+        result +=
+          ' mathbackground="' + xmlEscape(boxAtom.backgroundcolor.string) + '"';
+      }
 
       result +=
         makeID(atom.id, options) +
@@ -1081,7 +1087,10 @@ function atomToMathML(atom: Atom, options: { generateID?: boolean }): string {
           ) &&
           encloseAtom.notation[notation]
         ) {
-          result += sep + notation;
+          // The notation names are filtered against a known list when the
+          // atom is created. They are escaped anyway, so that an atom built
+          // from other sources cannot inject attributes.
+          result += sep + xmlEscape(notation);
           sep = ' ';
         }
       }

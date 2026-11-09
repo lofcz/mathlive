@@ -43,8 +43,6 @@ import {
 import { reloadFonts, loadFonts } from '../core/fonts';
 import { defaultSpeakHook } from '../editor/speech';
 import { defaultReadAloudHook } from '../editor/speech-read-aloud';
-import type { ComputeEngine } from '@cortex-js/compute-engine';
-
 import { l10n } from '../core/l10n';
 import {
   getShadowStylesheet,
@@ -391,18 +389,18 @@ const DEPRECATED_OPTIONS = {
  * document.body.style.setProperty("--hue", "10");
  * ```
  *
- * Read more about the [CSS variables](/mathfield/guides/customizing/#css-variables) available for customization.
+ * Read more about the [CSS variables](https://mathlive.io/mathfield/guides/customizing/#css-variables) available for customization.
  *
  * You can customize the appearance and zindex of the virtual keyboard panel
  * with some CSS variables associated with a selector that applies to the
  * virtual keyboard panel container.
  *
- * Read more about [customizing the virtual keyboard appearance](/mathfield/guides/virtual-keyboards/#custom-appearance)
+ * Read more about [customizing the virtual keyboard appearance](https://mathlive.io/mathfield/guides/virtual-keyboard/#custom-appearance)
  *
  * #### MathfieldElement CSS Parts
  *
  * In addition to the CSS variables, the mathfield exposes [CSS
- * parts that can be used to style the mathfield](/mathfield/guides/customizing/#mathfield-parts).
+ * parts that can be used to style the mathfield](https://mathlive.io/mathfield/guides/customizing/#mathfield-parts).
  *
  * For example, to hide the menu button:
  *
@@ -561,6 +559,9 @@ export class MathfieldElement extends HTMLElement implements Mathfield {
       'disabled', // Global attribute
       'readonly', // A semi-global attribute (not all standard elements support it, but some do)
       'read-only', // Alternate spelling for `readonly`
+      'aria-label', // Forwarded to the keyboard sink
+      'aria-labelledby', // Forwarded to the keyboard sink
+      'title', // Forwarded to the keyboard sink
     ];
   }
 
@@ -1141,7 +1142,7 @@ export class MathfieldElement extends HTMLElement implements Mathfield {
    * A custom compute engine instance. If none is provided, a default one is
    * used. If `null` is specified, no compute engine is used.
    */
-  static get computeEngine(): ComputeEngine | null {
+  static get computeEngine(): any | null {
     if (this._computeEngine === undefined) {
       const globalComputeEngine =
         window[Symbol.for('io.cortexjs.compute-engine')];
@@ -1170,7 +1171,7 @@ export class MathfieldElement extends HTMLElement implements Mathfield {
     }
     return this._computeEngine ?? null;
   }
-  static set computeEngine(value: ComputeEngine | null) {
+  static set computeEngine(value: any | null) {
     this._computeEngine = value;
   }
 
@@ -1184,7 +1185,7 @@ export class MathfieldElement extends HTMLElement implements Mathfield {
   }
 
   /** @internal */
-  private static _computeEngine: ComputeEngine | null;
+  private static _computeEngine: any | null;
 
   /** @internal */
   private static _isFunction: (command: string) => boolean = (command) => {
@@ -1358,9 +1359,21 @@ export class MathfieldElement extends HTMLElement implements Mathfield {
 
     if (isElementInternalsSupported()) {
       this._internals = this.attachInternals();
-      this._internals['role'] = 'math';
-      this._internals.ariaLabel = 'math input field';
-      this._internals.ariaMultiLine = 'false';
+      // Not `math`: that role has presentational children, but the
+      // mathfield contains a focusable, editable textbox (the keyboard sink)
+      // and buttons. `group` keeps the host's `aria-label` valid while
+      // exposing those controls.
+      //
+      // The host has no default `aria-label`: a default would take
+      // precedence over an associated `<label>` or a `title`, and the host
+      // would then have a different name from the keyboard sink. Without an
+      // author-supplied name the group is unnamed, and the keyboard sink
+      // has the default name (see `hostAccessibleName()` in
+      // `src/editor/a11y.ts`).
+      //
+      // The host has no `aria-multiline`: that attribute is not supported by
+      // the `group` role. It is set on the keyboard sink.
+      this._internals['role'] = 'group';
     }
 
     this.attachShadow({ mode: 'open', delegatesFocus: true });
@@ -1527,47 +1540,6 @@ export class MathfieldElement extends HTMLElement implements Mathfield {
 
   set mode(value: ParseMode) {
     this._mathfield?.switchMode(value);
-  }
-
-  /**
-   * If the Compute Engine library is available, return a boxed MathJSON expression representing the value of the mathfield.
-   *
-   * To load the Compute Engine library, use:
-   * ```js
-import 'https://esm.run/@cortex-js/compute-engine';
-```
-   *
-   * @category Accessing and changing the content
-   */
-  get expression(): any | null {
-    if (!this._mathfield) return undefined;
-    if (!window[Symbol.for('io.cortexjs.compute-engine')]) {
-      console.error(
-        `MathLive {{SDK_VERSION}}: The CortexJS Compute Engine library is not available.
-        
-        Load the library, for example with:
-        
-        import "https://esm.run/@cortex-js/compute-engine"`
-      );
-      return null;
-    }
-    return this._mathfield.expression;
-  }
-
-  set expression(mathJson: Expression | any) {
-    if (!this._mathfield) return;
-    const latex = MathfieldElement.computeEngine?.box(mathJson).latex ?? null;
-    if (latex !== null) this._mathfield.setValue(latex);
-
-    if (!window[Symbol.for('io.cortexjs.compute-engine')]) {
-      console.error(
-        `MathLive {{SDK_VERSION}}: The Compute Engine library is not available.
-        
-        Load the library, for example with:
-        
-        import "https://esm.run/@cortex-js/compute-engine"`
-      );
-    }
   }
 
   /**
@@ -1775,13 +1747,7 @@ import 'https://esm.run/@cortex-js/compute-engine';
   /**
    * Return a textual representation of the content of the mathfield.
    *
-   * @param format - The format of the result. If using `math-json`
-   * the Compute Engine library must be loaded, for example with:
-   *
-   * ```js
-import "https://esm.run/@cortex-js/compute-engine";
-```
-   *
+   * @param format - The format of the result.
    *
    * **Default:** `"latex"`
    *
@@ -2079,10 +2045,11 @@ import "https://esm.run/@cortex-js/compute-engine";
     });
 
     if (!isElementInternalsSupported()) {
-      if (!this.hasAttribute('role')) this.setAttribute('role', 'math');
-      if (!this.hasAttribute('aria-label'))
-        this.setAttribute('aria-label', 'math input field');
-      this.setAttribute('aria-multiline', 'false');
+      // No default `aria-label` and no `aria-multiline`, for the same
+      // reasons as in the constructor. A default `aria-label` attribute
+      // would also be read by `hostAccessibleName()` as the author's label,
+      // and an associated `<label>` would then be ignored.
+      if (!this.hasAttribute('role')) this.setAttribute('role', 'group');
     }
 
     // NVDA on Firefox seems to require this attribute
@@ -2192,6 +2159,16 @@ import "https://esm.run/@cortex-js/compute-engine";
     this._observer?.disconnect();
     this._observer = null;
 
+    // Chromium dispatches a `blur` event when a focused element is removed
+    // from the DOM. Firefox and Safari do not. If the mathfield still has the
+    // focus at this point, no `blur` event was received: do the blur now, so
+    // that the `change`, `blur` and `focusout` events are dispatched in all
+    // browsers. The element is already detached from the document when this
+    // callback is called, so only the listeners attached to the element
+    // itself receive these events.
+    if (this._mathfield.hasFocus())
+      this._mathfield.onBlur({ dispatchEvents: true });
+
     window.queueMicrotask(() =>
       // Notify listeners that we have been unmounted
       this.dispatchEvent(
@@ -2251,6 +2228,11 @@ import "https://esm.run/@cortex-js/compute-engine";
       case 'contenteditable':
         requestUpdate(this._mathfield);
         break;
+      case 'aria-label':
+      case 'aria-labelledby':
+      case 'title':
+        this._mathfield?.updateAccessibleName();
+        break;
       case 'placeholder':
         if (newValue === false) newValue = '';
         this.placeholder = newValue as string;
@@ -2282,18 +2264,17 @@ import "https://esm.run/@cortex-js/compute-engine";
       // The canonical spelling is "readonly" (no dash. It's a global attribute
       // name and follows HTML attribute conventions)
       this.setAttribute('readonly', '');
-      if (isElementInternalsSupported()) this._internals.ariaReadOnly = 'true';
-      else this.setAttribute('aria-readonly', 'true');
-
-      this.setAttribute('aria-readonly', 'true');
     } else {
-      if (isElementInternalsSupported()) this._internals.ariaReadOnly = 'false';
-      else this.removeAttribute('aria-readonly');
-
       this.removeAttribute('readonly');
       this.removeAttribute('read-only');
     }
 
+    // `aria-readonly` is not set on this element: its role is `group`, which
+    // does not support `aria-readonly`. When the `readOnly` option changes,
+    // the mathfield sets `aria-readonly` on the keyboard sink, the focusable
+    // `role=textbox` element in the shadow DOM (see
+    // `updateAccessibleReadOnly()` in
+    // `src/editor-mathfield/mathfield-private.ts`).
     this._setOptions({ readOnly: isReadonly });
   }
 

@@ -41,6 +41,18 @@ import { Context } from './context';
 import { Argument, LatexCommandDefinition } from 'latex-commands/types';
 import { codePointToLatex } from './unicode';
 import { isArray } from '../common/types';
+import { LatexResourceLimitError } from '../public/latex-errors';
+
+const MAX_LATEX_TOKENS = 100_000;
+const MAX_LATEX_INPUT_LENGTH = 200_000;
+const MAX_LATEX_PARSE_DEPTH = 256;
+
+export { LatexResourceLimitError };
+
+type ParseResourceBudget = {
+  remainingTokens: number;
+  parseDepth: number;
+};
 
 //
 // - Literal (character token): a letter, digit or punctuation
@@ -116,6 +128,10 @@ export class Parser {
   // times (1,000) in a row for the same token, bail.
   private endCount = 0;
 
+  private contextDepth = 0;
+
+  private readonly resourceBudget: ParseResourceBudget;
+
   private parsingContext: ParsingContext;
 
   private context: Context;
@@ -142,6 +158,7 @@ export class Parser {
       parseMode?: ParseMode;
       mathstyle?: MathstyleName;
       style?: Style;
+      resourceBudget?: ParseResourceBudget;
     }
   ) {
     options ??= {};
@@ -155,6 +172,10 @@ export class Parser {
           );
 
     this.args = options.args ?? undefined;
+    this.resourceBudget = options.resourceBudget ?? {
+      remainingTokens: MAX_LATEX_TOKENS,
+      parseDepth: 1,
+    };
     this.smartFence = this.context.smartFence;
     this.parsingContext = {
       parent: undefined,
@@ -172,6 +193,13 @@ export class Parser {
     tabular?: boolean;
     root?: boolean;
   }): void {
+    if (this.contextDepth >= MAX_LATEX_PARSE_DEPTH) {
+      throw new LatexResourceLimitError(
+        `Maximum LaTeX nesting depth (${MAX_LATEX_PARSE_DEPTH}) exceeded`
+      );
+    }
+    this.contextDepth += 1;
+
     if (options?.root) {
       // If we're starting a new root context, replace
       // the current context with a new one.
@@ -201,6 +229,7 @@ export class Parser {
 
   endContext(): void {
     this.parsingContext = this.parsingContext.parent!;
+    this.contextDepth -= 1;
   }
 
   onError(err: LatexSyntaxError): void {
@@ -367,8 +396,10 @@ export class Parser {
     // If there is a specific value defined for the placeholder,
     // use it.
     return parseLatex(placeHolderArg, {
+      context: this.context,
       parseMode: this.parseMode,
       mathstyle: 'textstyle',
+      resourceBudget: this.resourceBudget,
     });
   }
 
@@ -1537,6 +1568,11 @@ export class Parser {
     else if (type === 'balanced-string') result = this.scanBalancedString();
     else if (type === 'colspec') result = this.scanColspec();
     else if (type === 'value') result = this.scanValue();
+    else if (type === 'delim') {
+      // A braced delimiter, for example the `{(}` in `\genfrac{(}{)}...`.
+      // An empty group, `{}`, is a null delimiter.
+      result = this.peek() === '<}>' ? '.' : (this.scanDelim() ?? '.');
+    }
 
     this.skipUntilToken('<}>');
 
@@ -1920,6 +1956,7 @@ export class Parser {
         args: (arg) => args[arg],
         mathstyle: this.parsingContext.mathstyle,
         style: this.parsingContext.style,
+        resourceBudget: this.resourceBudget,
       }),
     });
   }
@@ -1969,26 +2006,67 @@ export function parseLatex(
     args?: (arg: string) => string | undefined;
     mathstyle?: MathstyleName;
     style?: Style;
+    resourceBudget?: ParseResourceBudget;
   }
 ): Atom[] {
+  if (s.length > MAX_LATEX_INPUT_LENGTH) {
+    throw new LatexResourceLimitError(
+      `Maximum LaTeX input length (${MAX_LATEX_INPUT_LENGTH}) exceeded`
+    );
+  }
   const args = options?.args ?? undefined;
-  const parser = new Parser(tokenize(s, args), options?.context, {
-    args,
-    mathstyle: options?.mathstyle ?? 'displaystyle',
-    parseMode: options?.parseMode ?? 'math',
-    style: options?.style ?? {},
-  });
+  const resourceBudget = options?.resourceBudget ?? {
+    remainingTokens: MAX_LATEX_TOKENS,
+    parseDepth: 0,
+  };
+  if (resourceBudget.parseDepth >= MAX_LATEX_PARSE_DEPTH) {
+    throw new LatexResourceLimitError(
+      `Maximum LaTeX expansion depth (${MAX_LATEX_PARSE_DEPTH}) exceeded`
+    );
+  }
 
-  const atoms: Atom[] = [];
-  while (!parser.end()) atoms.push(...parser.scan(() => false));
-  return atoms;
+  const tokens = tokenize(s, args);
+  resourceBudget.remainingTokens -= tokens.length;
+  if (resourceBudget.remainingTokens < 0) {
+    throw new LatexResourceLimitError(
+      `Maximum LaTeX token budget (${MAX_LATEX_TOKENS}) exceeded`
+    );
+  }
+
+  resourceBudget.parseDepth += 1;
+  try {
+    const parser = new Parser(tokens, options?.context, {
+      args,
+      mathstyle: options?.mathstyle ?? 'displaystyle',
+      parseMode: options?.parseMode ?? 'math',
+      style: options?.style ?? {},
+      resourceBudget,
+    });
+
+    const atoms: Atom[] = [];
+    while (!parser.end()) atoms.push(...parser.scan(() => false));
+    return atoms;
+  } finally {
+    resourceBudget.parseDepth -= 1;
+  }
 }
 
 export function validateLatex(
   s: string,
   options?: { context: ContextInterface; parseMode?: ParseMode }
 ): LatexSyntaxError[] {
-  const parser = new Parser(tokenize(s, null), options?.context, {
+  if (s.length > MAX_LATEX_INPUT_LENGTH) {
+    throw new LatexResourceLimitError(
+      `Maximum LaTeX input length (${MAX_LATEX_INPUT_LENGTH}) exceeded`
+    );
+  }
+  const tokens = tokenize(s, null);
+  if (tokens.length > MAX_LATEX_TOKENS) {
+    throw new LatexResourceLimitError(
+      `Maximum LaTeX token budget (${MAX_LATEX_TOKENS}) exceeded`
+    );
+  }
+  const parser = new Parser(tokens, options?.context, {
     mathstyle: 'displaystyle',
     parseMode: options?.parseMode ?? 'math',
   });

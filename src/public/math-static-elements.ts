@@ -10,13 +10,16 @@
 import {
   convertLatexToMarkup,
   convertAsciiMathToLatex,
-  convertMathJsonToLatex,
   convertLatexToSpeakableText,
   convertLatexToMathMl,
 } from './mathlive-ssr';
+import { mathJsonToLatex } from '../formats/math-json-to-latex';
 import type { LayoutOptions } from './options';
-import type { Expression } from '@cortex-js/compute-engine';
-import { getShadowStylesheet, getStylesheetContent } from '../common/stylesheet';
+import type { Expression } from './core-types';
+import {
+  getShadowStylesheet,
+  getStylesheetContent,
+} from '../common/stylesheet';
 import { loadFonts } from '../core/fonts';
 
 /**
@@ -59,7 +62,9 @@ abstract class MathStaticElement extends HTMLElement {
 
     // Add stylesheets
     if ('adoptedStyleSheets' in this._shadowRoot)
-      (this._shadowRoot as any).adoptedStyleSheets = [getShadowStylesheet('core')];
+      (this._shadowRoot as any).adoptedStyleSheets = [
+        getShadowStylesheet('core'),
+      ];
     else {
       const styleElement = document.createElement('style');
       styleElement.textContent = getStylesheetContent('core');
@@ -203,12 +208,7 @@ abstract class MathStaticElement extends HTMLElement {
    * Letter shape style option
    */
   get letterShapeStyle():
-    | 'auto'
-    | 'tex'
-    | 'iso'
-    | 'french'
-    | 'upright'
-    | undefined {
+    'auto' | 'tex' | 'iso' | 'french' | 'upright' | undefined {
     const value = this.getAttribute('letter-shape-style');
     if (
       value === 'auto' ||
@@ -296,7 +296,7 @@ abstract class MathStaticElement extends HTMLElement {
       } else if (format === 'math-json') {
         // Convert MathJSON to LaTeX
         const mathJson: Expression = JSON.parse(content);
-        latex = convertMathJsonToLatex(mathJson);
+        latex = mathJsonToLatex(mathJson);
       } else {
         // Already LaTeX
         latex = content;
@@ -404,7 +404,15 @@ abstract class MathStaticElement extends HTMLElement {
         this._shadowRoot.appendChild(this._mathMLContainer);
       }
 
-      this._mathMLContainer.innerHTML = mathML;
+      // `convertLatexToMathMl()` returns the content of a MathML expression
+      // (for example `<mrow>...</mrow>`), without the `<math>` root element.
+      // The HTML parser only creates MathML elements for the descendants of a
+      // `<math>` element. Without this root element, `<mrow>`, `<mfrac>`, etc.
+      // are parsed as unknown HTML elements, not as MathML.
+      this._mathMLContainer.innerHTML =
+        "<math xmlns='http://www.w3.org/1998/Math/MathML'>" +
+        mathML +
+        '</math>';
     } catch (error) {
       console.warn('Could not generate MathML:', error);
     }

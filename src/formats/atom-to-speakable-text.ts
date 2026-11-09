@@ -156,7 +156,7 @@ const ENVIRONMENTS_NAMES = {
 
 function getSpokenName(latex: string): string {
   let result = '';
-  if (latex.startsWith('\\')) result = ' ' + latex.replace('\\', '') + ' ';
+  if (latex.startsWith('\\')) result = ' ' + latex.slice(1) + ' ';
 
   return result;
 }
@@ -252,6 +252,20 @@ function atomsToSpeakableFragment(
   return result;
 }
 
+/**
+ * Text from the LaTeX input that is inserted in the speakable output. When
+ * the output is SSML (an XML format), the XML special characters are escaped
+ * so that the text cannot add elements to the SSML document.
+ */
+function speechText(value: string | undefined): string {
+  if (!value) return '';
+  if (!globalThis.MathfieldElement.textToSpeechMarkup) return value;
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
 function atomToSpeakableFragment(
   mode: 'text' | 'math',
   atom: undefined | Atom | readonly Atom[]
@@ -279,7 +293,7 @@ function atomToSpeakableFragment(
   if (atom.id && mode === 'math')
     result += '<mark name="' + atom.id.toString() + '"/>';
 
-  if (atom.mode === 'text') return result + atom.value;
+  if (atom.mode === 'text') return result + speechText(atom.value);
 
   let numer = '';
   let denom = '';
@@ -538,7 +552,7 @@ function atomToSpeakableFragment(
         atomValue = latexValue;
       }
 
-      if (mode === 'text') result += atomValue;
+      if (mode === 'text') result += speechText(atomValue);
       else {
         if (atom.type === 'mbin') result += '<break time="150ms"/>';
 
@@ -677,7 +691,9 @@ function atomToSpeakableFragment(
   if (!supsubHandled && !atom.hasEmptyBranch('superscript')) {
     let sup = atomToSpeakableFragment(mode, atom.superscript);
     sup = sup.trim();
-    const sup2 = sup.replace(/<[^>]*>/g, '');
+    const sup2 = globalThis.MathfieldElement.textToSpeechMarkup
+      ? speechMarkupToText(sup)
+      : sup;
     if (isAtomic(atom.superscript)) {
       if (mode === 'math') {
         const id = atomicID(atom.superscript);
@@ -794,8 +810,24 @@ export function atomToSpeakableText(atoms: Atom | readonly Atom[]): string {
     // If no markup was requested, or 'mac' markup, but we're not on a mac,
     // remove any that we may have
     // Strip out the SSML markup
-    result = result.replace(/<[^>]*>/g, '').replace(/\s{2,}/g, ' ');
+    if (mfe.textToSpeechMarkup) result = speechMarkupToText(result);
+    result = result.replace(/\s{2,}/g, ' ');
   }
 
+  return result;
+}
+
+/** Convert the small, generated SSML subset to plain text. User-provided text
+ * is XML-escaped before it reaches this function, so only generated tags are
+ * recognized as markup.
+ */
+function speechMarkupToText(value: string): string {
+  let result = '';
+  let inTag = false;
+  for (const char of value) {
+    if (char === '<') inTag = true;
+    else if (char === '>') inTag = false;
+    else if (!inTag) result += char;
+  }
   return result;
 }

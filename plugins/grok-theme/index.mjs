@@ -702,10 +702,21 @@ class GrokThemeRenderContext extends MarkdownThemeContext {
       member: (model, options) => {
         const md = [];
 
-        if (this.options.getValue('useHTMLAnchors') && model.anchor) {
-          const id = fullAnchor(model);
-          md.push(`<a id="${id}" name="${id}"></a>`);
-        }
+        // The anchor typedoc will use when it resolves a `{@link}` to this
+        // member. It must come from `router.getAnchor()`: that is the scheme
+        // the generated links use, so any other id can never match. @custom
+        //
+        // It is attached to the *heading*, as Docusaurus' explicit heading id
+        // (`{#anchor}`), not as an `<a id>`. Docusaurus only collects anchors
+        // from Heading components, so a raw HTML anchor would satisfy the
+        // browser but still be reported by `onBrokenAnchors` — and we would
+        // lose the check. See useCustomAnchors in typedoc.json.
+        const anchor =
+          this.options.getValue('useCustomAnchors') &&
+          !this.router.hasOwnDocument(model) &&
+          this.router.hasUrl(model)
+            ? this.router.getAnchor(model)
+            : undefined;
 
         let hasCard = false;
 
@@ -745,7 +756,12 @@ class GrokThemeRenderContext extends MarkdownThemeContext {
             md.push(`<MemberCard>`);
           }
 
-          md.push(heading(options.headingLevel, memberName));
+          md.push(
+            heading(
+              options.headingLevel,
+              anchor ? `${memberName} {#${anchor}}` : memberName
+            )
+          );
         }
 
         const getMember = (reflection) => {
@@ -1378,44 +1394,34 @@ class GrokThemeRenderContext extends MarkdownThemeContext {
 }
 
 function escapeChars(str) {
-  return str
-    .replace(/>/g, '\\>')
-    .replace(/</g, '\\<')
-    .replace(/{/g, '\\{')
-    .replace(/}/g, '\\}')
-    .replace(/_/g, '\\_')
-    .replace(/`/g, '\\`')
-    .replace(/\|/g, '\\|')
-    .replace(/\[/g, '\\[')
-    .replace(/\]/g, '\\]')
-    .replace(/\*/g, '\\*');
+  const escapable = new Set('\\><{}_`|[]*');
+  let result = '';
+  for (const char of str) result += escapable.has(char) ? `\\${char}` : char;
+  return result;
 }
 
 function unEscapeChars(str) {
-  return str
-    .replace(
-      /(`[^`]*?)\\*([^`]*?`)/g,
-      (match, p1, p2) => `${p1}${p2.replace(/\*/g, '\\*')}`
-    )
-    .replace(/\\\\/g, '\\')
-    .replace(/(?<!\\)\*/g, '')
-    .replace(/\\</g, '<')
-    .replace(/\\>/g, '>')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/\\_/g, '_')
-    .replace(/\\{/g, '{')
-    .replace(/\\}/g, '}')
-    .replace(/``.*?``|(?<!\\)`/g, (match) =>
-      match.startsWith('``') ? match : ''
-    )
+  const escapable = new Set('\\><{}_`|[]*');
+  let result = '';
+  for (let i = 0; i < str.length; i += 1) {
+    const char = str[i];
+    if (char === '\\' && i + 1 < str.length && escapable.has(str[i + 1])) {
+      result += str[i + 1];
+      i += 1;
+    } else if (char === '*') {
+      // Remove Markdown emphasis markers. Escaped asterisks are handled above
+      // and remain literal characters.
+    } else if (char === '`' && str[i + 1] !== '`' && str[i - 1] !== '`') {
+      // Remove Markdown inline-code delimiters. Escaped backticks and paired
+      // double backticks remain literal TypeScript syntax.
+    } else result += char;
+  }
+
+  return result
+    .replaceAll('&lt;', '<')
+    .replaceAll('&gt;', '>')
     .replace(/`` /g, '')
     .replace(/ ``/g, '')
-    .replace(/\\`/g, '`')
-    .replace(/\\\*/g, '*')
-    .replace(/\\\|/g, '|')
-    .replace(/\\\]/g, ']')
-    .replace(/\\\[/g, '[')
     .replace(/\[([^[\]]*)\]\((.*?)\)/gm, '$1');
 }
 
@@ -1482,16 +1488,6 @@ function getReturnType(context, typeDeclaration, type) {
 function printStackTrace(s) {
   var err = new Error();
   console.log(s + '\n' + err.stack.split('\n').slice(2).join('\n'));
-}
-
-function fullAnchor(model) {
-  const parent = model.parent?.anchor;
-  if (!parent) return model.anchor;
-
-  if (['__call', '__type'].includes(model.parent.name)) {
-    return `${fullAnchor(model.parent.parent)}_${model.anchor}`;
-  }
-  return `${model.parent.anchor}_${model.anchor}`;
 }
 
 function horizontalRule() {

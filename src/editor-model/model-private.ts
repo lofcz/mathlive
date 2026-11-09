@@ -385,8 +385,11 @@ export class _Model implements Model {
     const first = minPos === 0 ? 0 : minPos + 1;
     const last = maxPos;
 
-    // If this is the entire selection, return the root
-    if (!options.includeChildren && first === 1 && last === this.lastOffset)
+    // If this is the entire selection, return the root.
+    // The test is on the positions, not on `first`: a range that starts at
+    // position 0 gives `first === 0` (see the special case above), so a test on
+    // `first === 1` would never be true.
+    if (!options.includeChildren && minPos === 0 && maxPos === this.lastOffset)
       return [this.root];
 
     let result: Atom[] = [];
@@ -558,8 +561,7 @@ export class _Model implements Model {
     if (arg1 === undefined) return this.atomToString(this.root, 'latex');
 
     // GetValue(format): Output format only
-    if (typeof arg1 === 'string' && arg1 !== 'math-json')
-      return this.atomToString(this.root, arg1);
+    if (typeof arg1 === 'string') return this.atomToString(this.root, arg1);
 
     let ranges: Range[];
     let format: OutputFormat;
@@ -574,28 +576,10 @@ export class _Model implements Model {
       format = arg2 as OutputFormat;
     } else {
       ranges = [this.normalizeRange([0, -1])];
-      format = arg1 as OutputFormat;
+      format = 'latex';
     }
 
     format ??= 'latex';
-
-    if (format === 'math-json') {
-      if (!globalThis.MathfieldElement.computeEngine) {
-        if (!window[Symbol.for('io.cortexjs.compute-engine')]) {
-          console.error(
-            'The CortexJS Compute Engine library is not available.\nLoad the library, for example with:\nimport "https://esm.run/@cortex-js/compute-engine"'
-          );
-        }
-        return '["Error", "compute-engine-not-available"]';
-      }
-      const latex = this.getValue({ ranges }, 'latex-unstyled');
-      try {
-        const expr = globalThis.MathfieldElement.computeEngine.parse(latex);
-        return JSON.stringify(expr.json);
-      } catch (e) {
-        return JSON.stringify(['Error', `'${e.toString()}'`]);
-      }
-    }
 
     if (format.startsWith('latex')) {
       const options: ToLatexOptions = {
